@@ -2,18 +2,16 @@
 
 import CTAButton from "./CTAButton";
 
-export default function AnimatedCTA() {
-  return (
-    <div className="flex flex-col items-start gap-5">
-      <CTAButton
-        text="Book Appointment"
-        variant="filled"
-      />
+interface AnimatedCTAProps {
+  delay?: number;
+  onClick?: () => void;
+  animateOnMount?: boolean;
+}
 
-      <CTAButton
-        text="View Flashbook"
-        variant="outline"
-      />
-    </div>
-  );
+export default function AnimatedCTA({
+  delay = 0,
+  onClick,
+  animateOnMount = true,
+}: AnimatedCTAProps) {
+  return <CTAButton delay={delay} onClick={onClick} animateOnMount={animateOnMount} />;
 }

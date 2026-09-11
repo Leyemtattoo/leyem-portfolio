@@ -5,6 +5,91 @@
   --foreground: #171717;
 }
 
+@media (max-width: 767px) and (max-height: 700px) {
+  .booking-sheet {
+    height: 100dvh;
+    border-radius: 0;
+  }
+
+  .booking-scroll-area {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+
+  .booking-scroll-area .mt-12 {
+    margin-top: 0.5rem;
+  }
+
+  .booking-scroll-area .mt-10 {
+    margin-top: 1rem;
+  }
+
+  .booking-scroll-area .mt-4 {
+    margin-top: 0.4rem;
+  }
+
+  .booking-scroll-area .text-4xl {
+    font-size: 1.75rem;
+    line-height: 1.05;
+  }
+
+  .booking-scroll-area .py-5 {
+    padding-top: 0.8rem;
+    padding-bottom: 0.8rem;
+  }
+
+  .booking-scroll-area .text-xl {
+    font-size: 1rem;
+  }
+
+  .booking-next-arrow {
+    bottom: 0.25rem !important;
+  }
+
+  .booking-footer {
+    padding-top: 0.5rem;
+    padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
+  }
+}
+
+@media (max-width: 767px) {
+  .booking-sheet--keyboard {
+    border-radius: 0;
+  }
+
+  .booking-sheet--keyboard .booking-scroll-area {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+
+  .booking-sheet--keyboard .booking-scroll-area .mt-12 {
+    margin-top: 0.5rem;
+  }
+
+  .booking-sheet--keyboard .booking-scroll-area .mt-10 {
+    margin-top: 1rem;
+  }
+
+  .booking-sheet--keyboard .booking-scroll-area .mt-5,
+  .booking-sheet--keyboard .booking-scroll-area .mt-4 {
+    margin-top: 0.4rem;
+  }
+
+  .booking-sheet--keyboard .booking-scroll-area .text-4xl {
+    font-size: 1.75rem;
+    line-height: 1.05;
+  }
+
+  .booking-sheet--keyboard .booking-scroll-area .py-5 {
+    padding-top: 0.8rem;
+    padding-bottom: 0.8rem;
+  }
+
+  .booking-sheet--keyboard .booking-scroll-area .text-xl {
+    font-size: 1rem;
+  }
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -20,7 +105,146 @@
 }
 
 body {
-  background: var(--background);
+  min-height: 100dvh;
+  background: #000000;
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+html {
+  min-height: 100%;
+  background: #000000;
+}
+
+.hero-disco-glow {
+  background:
+    radial-gradient(ellipse 48% 26% at 82% 13%, rgb(255 255 255 / 13%), transparent 72%),
+    radial-gradient(ellipse 48% 34% at 3% 61%, rgb(220 220 220 / 8%), transparent 74%),
+    radial-gradient(ellipse 38% 22% at 58% 92%, rgb(255 255 255 / 7%), transparent 76%);
+  mix-blend-mode: screen;
+}
+
+.hero-disco-vignette {
+  background:
+    radial-gradient(ellipse 76% 62% at 50% 43%, transparent 25%, rgb(0 0 0 / 14%) 64%, rgb(0 0 0 / 58%) 100%),
+    linear-gradient(90deg, rgb(0 0 0 / 22%), transparent 18%, transparent 82%, rgb(0 0 0 / 22%));
+  box-shadow: inset 0 0 90px rgb(0 0 0 / 52%);
+}
+
+.hero-disco-shine {
+  background: linear-gradient(
+    112deg,
+    transparent 20%,
+    rgb(255 255 255 / 2%) 35%,
+    rgb(255 255 255 / 18%) 48%,
+    rgb(220 220 220 / 8%) 54%,
+    transparent 68%
+  );
+  mix-blend-mode: screen;
+  opacity: 0.72;
+  transform: translate3d(-65%, 0, 0) skewX(-12deg);
+  animation: hero-disco-shimmer 7s cubic-bezier(0.45, 0, 0.25, 1) infinite;
+  will-change: transform, opacity;
+}
+
+.hero-disco-grain {
+  inset: -3%;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.72'/%3E%3C/svg%3E");
+  background-size: 150px 150px;
+  mix-blend-mode: soft-light;
+  opacity: 0.17;
+  animation: hero-disco-grain 0.42s steps(2, end) infinite;
+  will-change: transform;
+}
+
+@keyframes hero-disco-shimmer {
+  0%, 14% {
+    opacity: 0;
+    transform: translate3d(-65%, 0, 0) skewX(-12deg);
+  }
+  24% {
+    opacity: 0.78;
+  }
+  48% {
+    opacity: 0.5;
+    transform: translate3d(62%, 0, 0) skewX(-12deg);
+  }
+  58%, 100% {
+    opacity: 0;
+    transform: translate3d(62%, 0, 0) skewX(-12deg);
+  }
+}
+
+@keyframes hero-disco-grain {
+  0% { transform: translate3d(0, 0, 0); }
+  25% { transform: translate3d(-1.5%, 1%, 0); }
+  50% { transform: translate3d(1%, -1.5%, 0); }
+  75% { transform: translate3d(1.5%, 1.5%, 0); }
+  100% { transform: translate3d(-1%, -1%, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-disco-shine {
+    animation: none;
+    opacity: 0.28;
+    transform: none;
+  }
+
+  .hero-disco-grain {
+    animation: none;
+  }
+}
+
+.booking-step-content input:not([type="file"]),
+.booking-step-content textarea {
+  width: 100%;
+  padding-right: 4.25rem;
+}
+
+.booking-step-content input:not([type="file"]) {
+  min-height: 4.25rem;
+  border: 0;
+  border-radius: 0;
+  background-color: transparent;
+  background-image: linear-gradient(#171717, #171717);
+  background-repeat: no-repeat;
+  background-position: left bottom;
+  background-size: 0 2px;
+  box-shadow: inset 0 -1px 0 rgb(23 23 23 / 22%);
+  padding-top: 1rem;
+  padding-bottom: 0.85rem;
+  padding-left: 0.15rem;
+  caret-color: #171717;
+  color: #171717;
+  -webkit-text-fill-color: #171717;
+  transition: background-size 380ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 250ms ease;
+  appearance: none;
+}
+
+.booking-step-content input:not([type="file"]):focus {
+  border: 0;
+  background-size: 100% 2px;
+  box-shadow: inset 0 -1px 0 transparent;
+  outline: none;
+}
+
+.booking-step-content input:not([type="file"])::placeholder {
+  color: rgb(170 167 159 / 72%);
+  -webkit-text-fill-color: rgb(170 167 159 / 72%);
+}
+
+.booking-step-content input:not([type="file"]):-webkit-autofill {
+  -webkit-box-shadow: inset 0 -1px 0 rgb(23 23 23 / 22%), inset 0 0 0 1000px #fff;
+  -webkit-text-fill-color: #171717;
+}
+
+/* Chrome mobile leaves less visual air below focused fields than Safari. */
+.booking-next-arrow--keyboard {
+  bottom: -4rem !important;
+}
+
+@supports (-webkit-touch-callout: none) {
+  .booking-next-arrow--keyboard {
+    bottom: -3rem !important;
+  }
 }

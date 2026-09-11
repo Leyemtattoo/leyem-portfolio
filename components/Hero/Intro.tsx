@@ -13,7 +13,7 @@ export default function Intro({ onFinish }: IntroProps) {
       playsInline
       onEnded={onFinish}
     >
-      <source src="/intro.mp4" type="video/mp4" />
+      <source src="/Intro.mp4" type="video/mp4" />
     </video>
   );
 }
