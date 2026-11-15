@@ -331,7 +331,7 @@ return (
               flex
               h-[78vh]
               flex-col
-              touch-none
+              touch-pan-y
               overflow-hidden
               overscroll-none
               rounded-t-[32px]
@@ -361,7 +361,7 @@ return (
             />
 
             {/* Content */}
-            <div className="booking-scroll-area min-h-0 flex-1 touch-none overflow-hidden overscroll-none px-6 py-8">
+            <div className="booking-scroll-area min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain px-6 py-8">
               <div className="mx-auto max-w-sm">
                 {flashTitle && !keyboardViewport && (
                   <div className="mb-6 flex items-center gap-3 rounded-2xl border border-black/10 bg-black/[0.03] px-3 py-3 text-sm text-[#4a4844]">
