@@ -126,6 +126,7 @@ export default function PlacementStudio({ designNumber = 1, miniIndex, allowUplo
   const [capturedReference, setCapturedReference] = useState<string | null>(null);
   const [capturedPreview, setCapturedPreview] = useState<string | null>(null);
   const [capturing, setCapturing] = useState(false);
+  const [captureFailed, setCaptureFailed] = useState(false);
   const [captureFlash, setCaptureFlash] = useState(false);
   const stageRef = useRef<HTMLDivElement>(null);
   const objectUrlRef = useRef<string | null>(null);
@@ -293,7 +294,7 @@ export default function PlacementStudio({ designNumber = 1, miniIndex, allowUplo
 
       let uploadedUrl: string | null = null;
       for (let attempt = 0; attempt < 2 && !uploadedUrl; attempt += 1) {
-        const response = await fetch("/api/upload", { method: "POST", body });
+        const response = await fetch("/api/upload", { method: "POST", body, signal: AbortSignal.timeout(15000) });
         const result = await response.json();
         if (response.ok && result.url) uploadedUrl = result.url;
       }
@@ -310,6 +311,7 @@ export default function PlacementStudio({ designNumber = 1, miniIndex, allowUplo
     const stage = stageRef.current;
     if (!stage || captureInFlight.current || transitionPlaying) return null;
     captureInFlight.current = true;
+    setCaptureFailed(false);
     const captureVersion = ++captureVersionRef.current;
     setCapturedReference(null);
     setCaptureFlash(true);
@@ -348,7 +350,7 @@ export default function PlacementStudio({ designNumber = 1, miniIndex, allowUplo
       return dataUrl;
     } catch (error) {
       console.error(error);
-      window.alert(copy.captureFailed);
+      setCaptureFailed(true);
       return null;
     } finally {
       captureInFlight.current = false;
@@ -356,10 +358,9 @@ export default function PlacementStudio({ designNumber = 1, miniIndex, allowUplo
     }
   };
 
-  const openBooking = async () => {
-    const placementPreview = await capturePlacement();
-    if (!placementPreview) return;
+  const openBooking = () => {
     setBookingOpen(true);
+    void capturePlacement();
   };
 
   const updateGesture = () => {
@@ -623,7 +624,7 @@ export default function PlacementStudio({ designNumber = 1, miniIndex, allowUplo
           {!allowUpload && <button type="button" onClick={() => void openBooking()} disabled={capturing || transitionPlaying} className={`mt-2 flex w-full items-center justify-between gap-3 rounded-full bg-[#e70101] px-5 py-3 text-xs font-semibold text-[#fffaf1] transition-[transform,box-shadow,opacity] disabled:opacity-50`}><span>{capturing ? copy.capturing : copy.book}</span><span aria-hidden>→</span></button>}
         </aside>
       </section>
-      <BookingSheet open={bookingOpen} onClose={() => setBookingOpen(false)} flashTitle={bookingTitle} capturedReference={capturedReference ?? undefined} capturedPreview={capturedPreview ?? undefined} />
+      <BookingSheet open={bookingOpen} onClose={() => setBookingOpen(false)} flashTitle={bookingTitle} capturedReference={capturedReference ?? undefined} capturedPreview={capturedPreview ?? undefined} attachmentStatus={capturing ? "pending" : captureFailed ? "failed" : undefined} />
     </main>
   );
 }

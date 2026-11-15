@@ -22,6 +22,7 @@ interface BookingSheetProps {
   flashTitle?: string;
   capturedReference?: string;
   capturedPreview?: string;
+  attachmentStatus?: "pending" | "failed";
 }
 
 type BookingForm = {
@@ -105,6 +106,7 @@ export default function BookingSheet({
   flashTitle,
   capturedReference,
   capturedPreview,
+  attachmentStatus,
 }: BookingSheetProps) {
  const { locale, t } = useTranslation();
  const [currentStep, setCurrentStep] = useState(0);
@@ -371,6 +373,13 @@ return (
                     <p className="mt-1 font-medium text-black">{flashTitle}</p>
                     </div>
                   </div>
+                )}
+                {attachmentStatus && currentStep < activeSteps.length && (
+                  <p role="status" className="mb-4 text-sm text-[#77736b]">
+                    {attachmentStatus === "pending"
+                      ? { fr: "Ajout de la photo du placement… Tu peux remplir ta demande.", en: "Attaching your placement photo… You can fill in your request.", de: "Platzierungsfoto wird angehängt… Du kannst deine Anfrage ausfüllen.", es: "Añadiendo la foto… Puedes completar tu solicitud." }[locale]
+                      : { fr: "La photo n’a pas pu être jointe. Tu peux quand même envoyer ta demande ; les détails du placement sont conservés.", en: "The photo could not be attached. You can still send your request; placement details are included.", de: "Das Foto konnte nicht angehängt werden. Du kannst die Anfrage trotzdem senden; die Platzierungsdetails sind enthalten.", es: "No se pudo adjuntar la foto. Puedes enviar tu solicitud; los detalles de ubicación se conservan." }[locale]}
+                  </p>
                 )}
                 <AnimatePresence mode="wait" initial={false}>
                   <motion.div
