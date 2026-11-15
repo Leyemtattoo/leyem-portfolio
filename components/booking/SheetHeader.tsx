@@ -1,3 +1,5 @@
+import { useTranslation } from "@/components/i18n/LanguageProvider";
+
 interface SheetHeaderProps {
   onClose: () => void;
   onBack: () => void;
@@ -13,10 +15,12 @@ export default function SheetHeader({
   currentStep,
   totalSteps,
 }: SheetHeaderProps) {
+  const { locale } = useTranslation();
+  const backLabel = { fr: "Retour", en: "Back", de: "Zurück", es: "Atrás" }[locale];
 const displayStep = Math.min(currentStep + 1, totalSteps);
 const progress = (displayStep / totalSteps) * 100;
   return (
-    <header className="border-b border-neutral-100 bg-white px-6 pt-3 pb-5">
+    <header className="relative z-20 shrink-0 border-b border-neutral-100 bg-white px-6 pt-3 pb-5">
       {/* Top bar */}
       <div className="mb-5 flex items-center justify-between">
         <button
@@ -29,13 +33,19 @@ const progress = (displayStep / totalSteps) * 100;
         <div className="flex items-center gap-3">
           <button
             type="button"
+            onPointerDown={(event) => {
+              // Keep keyboard blur from moving the sheet before the click lands.
+              event.preventDefault();
+            }}
             onClick={onBack}
-            aria-label="Question précédente"
-            className={`grid h-8 w-8 place-items-center text-[#AAA79F] transition hover:text-black ${canGoBack ? "visible" : "invisible"}`}
+            aria-label={backLabel}
+            disabled={!canGoBack}
+            className={`flex min-h-11 items-center gap-1 rounded-full border border-neutral-200 px-3 text-sm text-black transition hover:bg-neutral-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-black ${canGoBack ? "visible" : "invisible"}`}
           >
             <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" className="h-4 w-4">
               <path d="m14.5 5-7 7 7 7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
+            <span>{backLabel}</span>
           </button>
           <span className="text-sm text-[#AAA79F]">
             {displayStep} / {totalSteps}

@@ -1,6 +1,7 @@
 "use client";
 
 import LanguageSwitcher from "@/components/i18n/LanguageSwitcher";
+import ArtPreview from "@/components/Art/ArtPreview";
 import { useTranslation } from "@/components/i18n/LanguageProvider";
 import { framaBlack } from "@/app/fonts";
 import BookingSheet from "../booking/BookingSheet";
@@ -16,12 +17,14 @@ export default function Hero({
   hideFlashbookAction = false,
   preserveFlashbookButtonTop = false,
   onBookingOpenChange,
+  showArtPreview = false,
 }: {
   enterFromFlashbook?: boolean;
   hideActions?: boolean;
   hideFlashbookAction?: boolean;
   preserveFlashbookButtonTop?: boolean;
   onBookingOpenChange?: (open: boolean) => void;
+  showArtPreview?: boolean;
 }) {
   const { locale } = useTranslation();
   const [isBookingOpen, setIsBookingOpen] = useState(false);
@@ -68,7 +71,7 @@ export default function Hero({
   }[locale];
 
   useEffect(() => {
-    router.prefetch("/flashbook/categories");
+    router.prefetch("/flashbook");
   }, [router]);
 
   useEffect(() => {
@@ -99,6 +102,7 @@ export default function Hero({
   }, [enterFromFlashbook]);
 
   useEffect(() => {
+    if (showArtPreview) return;
     const html = document.documentElement;
     const body = document.body;
     const previousHtmlStyles = {
@@ -121,12 +125,12 @@ export default function Hero({
       body.style.overflow = previousBodyStyles.overflow;
       body.style.overscrollBehavior = previousBodyStyles.overscrollBehavior;
     };
-  }, []);
+  }, [showArtPreview]);
 
   const openFlashbook = () => {
     if (isOpeningFlashbook) return;
     if (reduceMotion) {
-      router.push("/flashbook/categories");
+      router.push("/flashbook");
       return;
     }
 
@@ -135,12 +139,12 @@ export default function Hero({
 
     document.documentElement.style.setProperty("--flash-home-top", `${top}px`);
     setIsOpeningFlashbook(true);
-    router.push("/flashbook/categories");
+    router.push("/flashbook");
   };
 
   return (
-    <main className="fixed inset-0 overflow-hidden overscroll-none bg-[#252525]">
-      <section className="relative h-full touch-none overflow-hidden bg-[#252525]">
+    <main className={showArtPreview ? "bg-[#252525]" : "fixed inset-0 overflow-hidden overscroll-none bg-[#252525]"}>
+      <section className={showArtPreview ? "relative h-[100dvh] min-h-[640px] overflow-hidden bg-[#252525]" : "relative h-full touch-none overflow-hidden bg-[#252525]"}>
         <video
           ref={heroVideoRef}
           aria-hidden="true"
@@ -291,9 +295,19 @@ export default function Hero({
           >
             <FlashbookButton delay={0.25} animateOnMount={false} onClick={openFlashbook} />
           </motion.div>
+          {showArtPreview && !hideActions && (
+            <a
+              href="#art-prints"
+              className="absolute bottom-[calc(12px+env(safe-area-inset-bottom))] left-1/2 flex min-h-11 -translate-x-1/2 items-center gap-3 whitespace-nowrap rounded-full px-4 text-[10px] uppercase tracking-[0.2em] text-white/65 transition-colors hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+            >
+              Art & Prints <span aria-hidden="true">↓</span>
+            </a>
+          )}
         </motion.div>
 
       </section>
+
+      {showArtPreview && <ArtPreview />}
 
       <AnimatePresence>
         {isAboutOpen && (

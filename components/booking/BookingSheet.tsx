@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { isParisBookingDate } from "./availability";
 import SheetHeader from "./SheetHeader";
 import StepName from "./steps/NameStep";
 import StepInstagram from "./steps/InstagramStep";
@@ -28,6 +29,7 @@ type BookingForm = {
   instagram: string;
   email: string;
   location: string;
+  date: string;
   placement: string;
   size: string;
   budget: string;
@@ -109,7 +111,7 @@ export default function BookingSheet({
  const [previewOpen, setPreviewOpen] = useState(false);
  const [keyboardViewport, setKeyboardViewport] = useState<{ top: number; height: number } | null>(null);
  const activeSteps = flashTitle
-   ? steps.filter(({ field }) => !["placement", "budget", "references"].includes(field))
+   ? steps.filter(({ field }) => !["placement", "size", "budget", "references"].includes(field))
    : steps;
 
 const [formData, setFormData] = useState<BookingForm>({
@@ -117,6 +119,7 @@ const [formData, setFormData] = useState<BookingForm>({
   instagram: "",
   email: "",
   location: "",
+  date: "",
   placement: "",
   size: "",
   budget: "",
@@ -133,6 +136,23 @@ useEffect(() => {
 useEffect(() => {
   if (!open) setPreviewOpen(false);
 }, [open]);
+
+useEffect(() => {
+  if (open || currentStep < activeSteps.length) return;
+  setCurrentStep(0);
+  setFormData({
+    name: "",
+    instagram: "",
+    email: "",
+    location: "",
+    date: "",
+    placement: "",
+    size: "",
+    budget: "",
+    references: flashTitle ? capturedReference ?? "" : "",
+    notes: "",
+  });
+}, [open, currentStep, activeSteps.length, flashTitle, capturedReference]);
 
 useEffect(() => {
   if (!open) return;
@@ -210,7 +230,9 @@ useEffect(() => {
 
 const isCurrentStepFilled =
   currentStep >= activeSteps.length ||
-  (activeSteps[currentStep].field === "email"
+  (activeSteps[currentStep].field === "location"
+    ? ["Paris", "Berlin"].includes(formData.location) && (formData.location !== "Paris" || isParisBookingDate(formData.date))
+    : activeSteps[currentStep].field === "email"
     ? /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())
     : formData[activeSteps[currentStep].field].trim().length > 0);
 
@@ -329,14 +351,17 @@ return (
           >
             <SheetHeader
               onClose={onClose}
-              onBack={() => setCurrentStep((previousStep) => Math.max(0, previousStep - 1))}
-              canGoBack={currentStep > 0}
+              onBack={() => {
+                if (currentStep <= 0 || currentStep >= activeSteps.length) return;
+                setCurrentStep((previousStep) => Math.max(0, previousStep - 1));
+              }}
+              canGoBack={currentStep > 0 && currentStep < activeSteps.length}
               currentStep={currentStep}
               totalSteps={activeSteps.length}
             />
 
             {/* Content */}
-            <div className="booking-scroll-area flex-1 touch-none overflow-hidden overscroll-none px-6 py-8">
+            <div className="booking-scroll-area min-h-0 flex-1 touch-none overflow-hidden overscroll-none px-6 py-8">
               <div className="mx-auto max-w-sm">
                 {flashTitle && !keyboardViewport && (
                   <div className="mb-6 flex items-center gap-3 rounded-2xl border border-black/10 bg-black/[0.03] px-3 py-3 text-sm text-[#4a4844]">
@@ -399,10 +424,13 @@ return (
   ) : activeSteps[currentStep].field === "location" ? (
   <LocationStep
     value={formData.location}
+    date={formData.date}
+    onDateChange={(date) => setFormData((current) => ({ ...current, date }))}
     onChange={(value) =>
       setFormData({
         ...formData,
         location: value,
+        date: value === formData.location ? formData.date : "",
       })
     }
   />
@@ -493,9 +521,11 @@ return (
                       disabled={!canAdvance}
                       initial={false}
                       animate={{
-                        left: isArrowReady
-                          ? "calc(100% - 56px)"
-                          : "calc(100% - 112px)",
+                        left: currentStep === activeSteps.length
+                          ? 0
+                          : isArrowReady
+                            ? "calc(100% - 56px)"
+                            : "calc(100% - 112px)",
                       }}
                       transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
                       aria-label={currentStep === activeSteps.length
@@ -503,11 +533,10 @@ return (
                         : currentStep === activeSteps.length - 1
                           ? t("booking.submit")
                           : t("booking.continue")}
-                      className={`booking-next-arrow absolute z-10 grid h-14 w-14 place-items-center transition-colors duration-300 active:scale-95 ${
-                        currentStep < activeSteps.length && activeSteps[currentStep].field === "references"
-                          ? "top-[310px]"
-                          : "bottom-0"
-                      } ${
+                      className={`${currentStep === activeSteps.length
+                        ? "relative ml-auto mt-2"
+                        : `booking-next-arrow absolute z-10 ${activeSteps[currentStep].field === "references" ? "top-[310px]" : "bottom-0"}`
+                      } grid h-14 w-14 place-items-center transition-colors duration-300 active:scale-95 ${
                         isArrowReady
                           ? "text-[#252525]"
                           : "text-[#aaa7a0]"

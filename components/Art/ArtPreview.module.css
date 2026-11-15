@@ -1,0 +1,28 @@
+.section { background: #f2efe9; color: #242321; padding: 36px 24px 0; }
+.inner { max-width: 1160px; margin: 0 auto; }
+.eyebrow { display: flex; justify-content: space-between; gap: 16px; border-top: 1px solid #24232133; padding-top: 18px; font-size: 10px; text-transform: uppercase; letter-spacing: .16em; }
+.header { display: flex; justify-content: space-between; align-items: flex-end; gap: 40px; padding: 66px 0 52px; }
+.kicker { margin-bottom: 20px; font-size: 16px; }
+.title { position: relative; width: fit-content; font-size: clamp(70px, 10vw, 132px); line-height: .83; letter-spacing: -.045em; }
+.asterisk { position: absolute; top: 0; right: -.85em; font-family: Arial, sans-serif; font-size: .5em; font-weight: 400; }
+.intro { max-width: 295px; padding-bottom: 5px; }
+.intro > p { font-size: 18px; line-height: 1.5; color: #5c5954; }
+.badge { display: inline-flex; align-items: center; gap: 8px; margin-top: 25px; padding: 10px 13px; border: 1px solid #24232130; border-radius: 24px; font-size: 11px; }
+.badge > span { width: 5px; height: 5px; background: #726855; border-radius: 50%; }
+.comingSoon { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px; min-height: 380px; padding: 40px 16px 72px; text-align: center; }
+.sleepingCat { width: min(260px, 75%); height: auto; object-fit: contain; mix-blend-mode: multiply; }
+.comingSoonTitle { font-size: clamp(28px, 5vw, 52px); line-height: 1; letter-spacing: -.025em; }
+.footer button:focus-visible { outline: 2px solid #242321; outline-offset: 6px; }
+.footer { display: flex; align-items: center; justify-content: space-between; gap: 20px; border-top: 1px solid #24232133; padding: 20px 0 max(24px, env(safe-area-inset-bottom)); font-size: 12px; }
+.footer button { cursor: pointer; min-height: 44px; }
+.footer button span { margin-left: 10px; }
+@media (max-width: 699px) {
+  .section { padding: 28px 24px 0; }
+  .header { display: block; padding: 44px 0 32px; }
+  .title { font-size: clamp(68px, 20vw, 110px); }
+  .kicker { font-size: 14px; }
+  .intro { max-width: 350px; margin-top: 28px; }
+  .intro > p { font-size: 16px; }
+  .badge { margin-top: 18px; }
+  .footer { font-size: 11px; }
+}

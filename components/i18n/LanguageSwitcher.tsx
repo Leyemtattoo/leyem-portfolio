@@ -9,6 +9,7 @@ interface LanguageSwitcherProps {
   animateOnMount?: boolean;
   activeIndicatorId?: string;
   playIntroSequence?: boolean;
+  appearance?: "dark" | "light";
 }
 
 export default function LanguageSwitcher({
@@ -16,6 +17,7 @@ export default function LanguageSwitcher({
   animateOnMount = true,
   activeIndicatorId = "active-language",
   playIntroSequence = false,
+  appearance = "dark",
 }: LanguageSwitcherProps) {
   const { locale, setLocale } = useTranslation();
   const [introLocale, setIntroLocale] = useState<Locale | null>(
@@ -62,7 +64,7 @@ export default function LanguageSwitcher({
         ? { opacity: 1, x: 0 }
         : { opacity: 0, x: 14 }}
       transition={{ duration: visible ? 0.36 : 0.2, ease: [0.22, 1, 0.36, 1] }}
-      className={`absolute right-5 top-[calc(18%_-_48px)] z-[110] flex gap-0.5 rounded-full border border-white/10 bg-black/25 p-1 shadow-[0_8px_24px_rgba(0,0,0,0.16)] backdrop-blur-xl ${visible ? "pointer-events-auto" : "pointer-events-none"}`}
+      className={`${appearance === "light" ? "relative flex gap-0.5 text-[#404040]" : "absolute right-5 top-[calc(18%_-_48px)] z-[110] flex gap-0.5 rounded-full border border-white/10 bg-black/25 p-1 shadow-[0_8px_24px_rgba(0,0,0,0.16)] backdrop-blur-xl"} ${visible ? "pointer-events-auto" : "pointer-events-none"}`}
     >
       {(["en", "de", "fr", "es"] as Locale[]).map((option) => (
         <button
@@ -73,14 +75,14 @@ export default function LanguageSwitcher({
             setLocale(option);
           }}
           className={`relative isolate h-8 min-w-10 rounded-full px-2 text-[11px] font-semibold tracking-[0.08em] transition-colors ${
-            displayedLocale === option ? "text-[#252525]" : "text-white/55 hover:text-white"
+            displayedLocale === option ? (appearance === "light" ? "text-[#e70101]" : "text-[#252525]") : (appearance === "light" ? "text-[#404040] hover:text-[#e70101]" : "text-white/55 hover:text-white")
           }`}
           aria-pressed={displayedLocale === option}
         >
           {displayedLocale === option && (
             <motion.span
               layoutId={activeIndicatorId}
-              className="absolute inset-0 -z-10 rounded-full bg-[#D8C1AE] shadow-[0_2px_10px_rgba(216,193,174,0.22)]"
+              className={appearance === "light" ? "absolute bottom-0 left-2 right-2 h-px bg-[#e70101]" : "absolute inset-0 -z-10 rounded-full bg-[#D8C1AE] shadow-[0_2px_10px_rgba(216,193,174,0.22)]"}
               transition={{ duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
             />
           )}

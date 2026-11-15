@@ -105,6 +105,10 @@
 }
 
 body {
+  width: 100%;
+  min-width: 0;
+  overflow-x: clip;
+  overscroll-behavior: none;
   min-height: 100dvh;
   background: #000000;
   color: var(--foreground);
@@ -112,6 +116,9 @@ body {
 }
 
 html {
+  width: 100%;
+  overflow-x: clip;
+  overscroll-behavior: none;
   min-height: 100%;
   background: #000000;
 }

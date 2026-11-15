@@ -1,11 +1,5 @@
-import Hero from "@/components/Hero/Hero";
+import HomeMenu from "@/components/Home/HomeMenu";
 
-export default async function Home({
-  searchParams,
-}: {
-  searchParams: Promise<{ from?: string }>;
-}) {
-  const { from } = await searchParams;
-
-  return <Hero enterFromFlashbook={from === "flashbook"} />;
+export default function Home() {
+  return <HomeMenu />;
 }

@@ -1,5 +1,7 @@
 "use client";
 
+import { miniFlashDesigns, miniFlashName } from "@/components/Flashbook/miniFlashes";
+
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { ChangeEvent, PointerEvent as ReactPointerEvent, useEffect, useRef, useState } from "react";
@@ -14,6 +16,15 @@ type AnatomicalZone = "shoulders" | "chest" | "abdomen" | "waistband" | "upperAr
 type Placement = { x: number; y: number; scale: number; rotation: number; mirrored: boolean };
 type ViewTransition = { src: string; target: View; frozenFrame?: string };
 
+const gestureHelp: Record<Locale, { title: string; steps: string[] }> = {
+  fr: { title: "Ajuste ton flash", steps: ["Glisse pour le placer.", "Pince à deux doigts pour changer sa taille.", "Tourne à deux doigts pour l’orienter."] },
+  en: { title: "Adjust your flash", steps: ["Drag to place it.", "Pinch with two fingers to resize it.", "Rotate with two fingers to change its angle."] },
+  de: { title: "Passe dein Flash an", steps: ["Ziehe es an die gewünschte Stelle.", "Ziehe zwei Finger zusammen oder auseinander für die Größe.", "Drehe es mit zwei Fingern für den Winkel."] },
+  es: { title: "Ajusta tu flash", steps: ["Arrastra para colocarlo.", "Pellizca con dos dedos para cambiar el tamaño.", "Gira con dos dedos para orientarlo."] },
+};
+
+const INITIAL_MANNEQUIN_ZOOM = 1.5;
+const MAX_MANNEQUIN_ZOOM = 2.25;
 const REFERENCE_BODY_HEIGHT_CM = 180;
 const ANATOMICAL_ZONES: Record<AnatomicalZone, { widthCm: number; lengthCm: number; area: Area }> = {
   shoulders: { widthCm: 45, lengthCm: 30, area: "torso" },
@@ -77,49 +88,53 @@ const studioCopy: Record<Locale, {
   retake: string;
   captureFailed: string;
 }> = {
-  fr: { genders: [{ value: "female", label: "Femme" }, { value: "male", label: "Homme" }], views: [{ value: "face", label: "Face" }, { value: "side", label: "Côté" }, { value: "back", label: "Dos" }], areas: [{ value: "torso", label: "Torse" }, { value: "arm", label: "Bras" }, { value: "leg", label: "Jambe" }], gesture: "Glisser · Pincer · Tourner", book: "Réserver", mirror: "Retourner le flash en miroir", close: "Revenir au flash sélectionné", import: "Importer", moveUp: "Monter le mannequin", moveDown: "Descendre le mannequin", moveLeft: "Déplacer le mannequin à gauche", moveRight: "Déplacer le mannequin à droite", moveMannequin: "Déplacer le mannequin", zoomIn: "Zoomer sur le mannequin", zoomOut: "Dézoomer le mannequin", capture: "Joindre une photo du placement", capturing: "Ajout de la photo…", retake: "Remplacer la photo", captureFailed: "La photo du placement n’a pas pu être ajoutée. Réessaie." },
-  en: { genders: [{ value: "female", label: "Woman" }, { value: "male", label: "Man" }], views: [{ value: "face", label: "Front" }, { value: "side", label: "Side" }, { value: "back", label: "Back" }], areas: [{ value: "torso", label: "Torso" }, { value: "arm", label: "Arm" }, { value: "leg", label: "Leg" }], gesture: "Drag · Pinch · Rotate", book: "Book", mirror: "Mirror the flash", close: "Back to selected flash", import: "Upload", moveUp: "Move mannequin up", moveDown: "Move mannequin down", moveLeft: "Move mannequin left", moveRight: "Move mannequin right", moveMannequin: "Move mannequin", zoomIn: "Zoom in on mannequin", zoomOut: "Zoom out on mannequin", capture: "Attach a placement photo", capturing: "Attaching photo…", retake: "Replace photo", captureFailed: "The placement photo could not be attached. Please try again." },
-  de: { genders: [{ value: "female", label: "Frau" }, { value: "male", label: "Mann" }], views: [{ value: "face", label: "Vorne" }, { value: "side", label: "Seite" }, { value: "back", label: "Rücken" }], areas: [{ value: "torso", label: "Torso" }, { value: "arm", label: "Arm" }, { value: "leg", label: "Bein" }], gesture: "Ziehen · Zoomen · Drehen", book: "Buchen", mirror: "Flash spiegeln", close: "Zurück zum ausgewählten Flash", import: "Hochladen", moveUp: "Mannequin nach oben", moveDown: "Mannequin nach unten", moveLeft: "Mannequin nach links", moveRight: "Mannequin nach rechts", moveMannequin: "Mannequin bewegen", zoomIn: "Mannequin vergrößern", zoomOut: "Mannequin verkleinern", capture: "Foto der Platzierung anhängen", capturing: "Foto wird angehängt…", retake: "Foto ersetzen", captureFailed: "Das Platzierungsfoto konnte nicht angehängt werden. Bitte erneut versuchen." },
-  es: { genders: [{ value: "female", label: "Mujer" }, { value: "male", label: "Hombre" }], views: [{ value: "face", label: "Frente" }, { value: "side", label: "Perfil" }, { value: "back", label: "Espalda" }], areas: [{ value: "torso", label: "Torso" }, { value: "arm", label: "Brazo" }, { value: "leg", label: "Pierna" }], gesture: "Deslizar · Pellizcar · Girar", book: "Reservar", mirror: "Reflejar el flash", close: "Volver al flash seleccionado", import: "Subir", moveUp: "Subir el maniquí", moveDown: "Bajar el maniquí", moveLeft: "Mover el maniquí a la izquierda", moveRight: "Mover el maniquí a la derecha", moveMannequin: "Mover el maniquí", zoomIn: "Acercar el maniquí", zoomOut: "Alejar el maniquí", capture: "Adjuntar foto de la colocación", capturing: "Adjuntando foto…", retake: "Cambiar foto", captureFailed: "No se pudo adjuntar la foto de colocación. Inténtalo de nuevo." },
+  fr: { genders: [{ value: "female", label: "Femme" }, { value: "male", label: "Homme" }], views: [{ value: "face", label: "Face" }, { value: "side", label: "Côté" }, { value: "back", label: "Dos" }], areas: [{ value: "torso", label: "Torse" }, { value: "arm", label: "Bras" }, { value: "leg", label: "Jambe" }], gesture: "Glisser · Pincer · Tourner", book: "Réserver", mirror: "Retourner le flash en miroir", close: "Revenir à la galerie", import: "Importer", moveUp: "Monter le mannequin", moveDown: "Descendre le mannequin", moveLeft: "Déplacer le mannequin à gauche", moveRight: "Déplacer le mannequin à droite", moveMannequin: "Déplacer le mannequin", zoomIn: "Zoomer sur le mannequin", zoomOut: "Dézoomer le mannequin", capture: "Joindre une photo du placement", capturing: "Ajout de la photo…", retake: "Remplacer la photo", captureFailed: "La photo du placement n’a pas pu être ajoutée. Réessaie." },
+  en: { genders: [{ value: "female", label: "Woman" }, { value: "male", label: "Man" }], views: [{ value: "face", label: "Front" }, { value: "side", label: "Side" }, { value: "back", label: "Back" }], areas: [{ value: "torso", label: "Torso" }, { value: "arm", label: "Arm" }, { value: "leg", label: "Leg" }], gesture: "Drag · Pinch · Rotate", book: "Book", mirror: "Mirror the flash", close: "Back to gallery", import: "Upload", moveUp: "Move mannequin up", moveDown: "Move mannequin down", moveLeft: "Move mannequin left", moveRight: "Move mannequin right", moveMannequin: "Move mannequin", zoomIn: "Zoom in on mannequin", zoomOut: "Zoom out on mannequin", capture: "Attach a placement photo", capturing: "Attaching photo…", retake: "Replace photo", captureFailed: "The placement photo could not be attached. Please try again." },
+  de: { genders: [{ value: "female", label: "Frau" }, { value: "male", label: "Mann" }], views: [{ value: "face", label: "Vorne" }, { value: "side", label: "Seite" }, { value: "back", label: "Rücken" }], areas: [{ value: "torso", label: "Torso" }, { value: "arm", label: "Arm" }, { value: "leg", label: "Bein" }], gesture: "Ziehen · Zoomen · Drehen", book: "Buchen", mirror: "Flash spiegeln", close: "Zurück zur Galerie", import: "Hochladen", moveUp: "Mannequin nach oben", moveDown: "Mannequin nach unten", moveLeft: "Mannequin nach links", moveRight: "Mannequin nach rechts", moveMannequin: "Mannequin bewegen", zoomIn: "Mannequin vergrößern", zoomOut: "Mannequin verkleinern", capture: "Foto der Platzierung anhängen", capturing: "Foto wird angehängt…", retake: "Foto ersetzen", captureFailed: "Das Platzierungsfoto konnte nicht angehängt werden. Bitte erneut versuchen." },
+  es: { genders: [{ value: "female", label: "Mujer" }, { value: "male", label: "Hombre" }], views: [{ value: "face", label: "Frente" }, { value: "side", label: "Perfil" }, { value: "back", label: "Espalda" }], areas: [{ value: "torso", label: "Torso" }, { value: "arm", label: "Brazo" }, { value: "leg", label: "Pierna" }], gesture: "Deslizar · Pellizcar · Girar", book: "Reservar", mirror: "Reflejar el flash", close: "Volver a la galería", import: "Subir", moveUp: "Subir el maniquí", moveDown: "Bajar el maniquí", moveLeft: "Mover el maniquí a la izquierda", moveRight: "Mover el maniquí a la derecha", moveMannequin: "Mover el maniquí", zoomIn: "Acercar el maniquí", zoomOut: "Alejar el maniquí", capture: "Adjuntar foto de la colocación", capturing: "Adjuntando foto…", retake: "Cambiar foto", captureFailed: "No se pudo adjuntar la foto de colocación. Inténtalo de nuevo." },
 };
 
-const initialPlacement: Placement = { x: 50, y: 43, scale: 0.72, rotation: 0, mirrored: false };
-const flashDesigns = { 1: "/images/flashbook/TEST-01-placement-v2.png", 2: "/images/flashbook/TEST-02.webp", 3: "/images/flashbook/TEST-03.webp", 4: "/images/flashbook/TEST-04.webp" } as const;
+const initialPlacement: Placement = { x: 50, y: 44, scale: 0.72, rotation: 0, mirrored: false };
+const flashDesigns = { 1: "/images/flashbook/TEST-01-placement-v2.png", 2: "/images/flashbook/TEST-02.webp", 3: "/images/flashbook/TEST-03.webp", 4: "/images/flashbook/TEST-04.webp", 5: "/images/walkins/angel-skull-full.png", 6: "/images/flashbook/arkansas-lovin-man.png", 7: "/images/flashbook/medusam.png", 8: "/images/flashbook/medusa.png", 9: "/images/flashbook/just-pray.png" } as const;
 const clamp = (value: number, min: number, max: number) => Math.min(Math.max(value, min), max);
 
-export default function PlacementStudio({ designNumber = 1, allowUpload = false }: { designNumber?: 1 | 2 | 3 | 4; allowUpload?: boolean }) {
+export default function PlacementStudio({ designNumber = 1, miniIndex, allowUpload = false }: { designNumber?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9; miniIndex?: number; allowUpload?: boolean }) {
   const router = useRouter();
   const { locale } = useTranslation();
   const copy = studioCopy[locale];
+  const [stageSize, setStageSize] = useState({ width: 390, height: 844 });
   const [gender, setGender] = useState<Gender>("female");
   const [view, setView] = useState<View>("face");
-  const [designSrc, setDesignSrc] = useState<string>(flashDesigns[designNumber]);
-  const [uploadedName, setUploadedName] = useState(`TEST ${String(designNumber).padStart(2, "0")}`);
-  const [placement, setPlacement] = useState<Placement>(initialPlacement);
+  const miniDesign = miniIndex !== undefined ? miniFlashDesigns[miniIndex] : undefined;
+  const [designSrc, setDesignSrc] = useState<string>(miniDesign?.image ?? flashDesigns[designNumber]);
+  const [uploadedName, setUploadedName] = useState(miniDesign ? miniFlashName(miniIndex!) : designNumber === 9 ? "Just pray" : designNumber === 7 ? "Medusam" : designNumber === 8 ? "Medus@" : designNumber === 6 ? "Arkansas lovin’ man" : designNumber === 5 ? "Angel skull" : designNumber === 1 ? "Mary Bird" : `TEST ${String(designNumber).padStart(2, "0")}`);
+  const hasSixCmMinimum = !miniDesign && (designNumber === 1 || designNumber === 5 || designNumber === 6);
+  const hasTenCmMinimum = !miniDesign && (designNumber === 7 || designNumber === 8);
+  const maximumHeightCm = miniDesign?.maximumCm;
+  const minimumHeightCm = miniDesign ? maximumHeightCm ? maximumHeightCm / Math.max(1, miniDesign.aspectRatio ?? 0.75) : miniDesign.minimumCm ?? 6 : designNumber === 9 ? 7 : hasTenCmMinimum ? 10 : 6;
+  const hasMinimumSize = Boolean(miniDesign) || hasSixCmMinimum || hasTenCmMinimum || designNumber === 9;
+  const defaultFlashScale = miniDesign ? minimumHeightCm * 0.0367 : designNumber === 9 ? 0.26 : hasTenCmMinimum ? 0.36 : hasSixCmMinimum ? 0.22 : initialPlacement.scale;
+  const [placement, setPlacement] = useState<Placement>(() => ({ ...initialPlacement, scale: defaultFlashScale }));
   const [mannequinY, setMannequinY] = useState(0);
   const [mannequinX, setMannequinX] = useState(0);
-  const [mannequinZoom, setMannequinZoom] = useState(1);
+  const initialMannequinZoom = miniDesign ? 3 : INITIAL_MANNEQUIN_ZOOM;
+  const maxMannequinZoom = miniDesign ? 4.5 : MAX_MANNEQUIN_ZOOM;
+  const [mannequinZoom, setMannequinZoom] = useState(initialMannequinZoom);
   const [joystickPosition, setJoystickPosition] = useState({ x: 0, y: 0 });
   const [bookingOpen, setBookingOpen] = useState(false);
   const [viewTransition, setViewTransition] = useState<ViewTransition | null>(null);
   const [capturedReference, setCapturedReference] = useState<string | null>(null);
   const [capturedPreview, setCapturedPreview] = useState<string | null>(null);
   const [capturing, setCapturing] = useState(false);
-  const [showFlashSize, setShowFlashSize] = useState(false);
   const [captureFlash, setCaptureFlash] = useState(false);
-  const [bookPulse, setBookPulse] = useState(false);
-  const [showCaptureHint, setShowCaptureHint] = useState(true);
   const stageRef = useRef<HTMLDivElement>(null);
   const objectUrlRef = useRef<string | null>(null);
   const pointersRef = useRef(new Map<number, { x: number; y: number }>());
   const gestureRef = useRef<{ placement: Placement; center: { x: number; y: number }; distance: number; angle: number } | null>(null);
   const joystickRef = useRef<{ pointerId: number; startX: number; startY: number; mannequinX: number; mannequinY: number } | null>(null);
-  const previousFlashScaleRef = useRef(initialPlacement.scale);
-  const previousAnatomicalZoneRef = useRef<AnatomicalZone | null>(null);
-  const flashSizeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const captureFlashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const bookPulseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const captureVersionRef = useRef(0);
+  const captureInFlight = useRef(false);
 
   const fullMannequins: Record<View, string> = {
     face: "/images/studio/male/face-full.jpg",
@@ -138,9 +153,38 @@ export default function PlacementStudio({ designNumber = 1, allowUpload = false 
     : (framedView === "side" ? 1.42 : 1.22);
   const mannequinScale = mannequinBaseScale * mannequinZoom;
   const transitionPlaying = Boolean(viewTransition && !viewTransition.frozenFrame);
-  // Larger default view scales used to push the head above the viewport.
-  // Offset each framing proportionally so the complete head is visible first.
-  const mannequinHeadFramingVh = Math.max(0, mannequinBaseScale - 1) * 40;
+  const imagePadding = stageSize.width >= 640 ? 196 : 176;
+  const imageWidth = stageSize.width - (stageSize.width >= 640 ? 40 : 24);
+  const imageHeight = Math.min(stageSize.height - imagePadding, imageWidth * 2400 / 1696);
+  const imageTop = (stageSize.height - imagePadding - imageHeight) / 2;
+  const initialScale = mannequinBaseScale * INITIAL_MANNEQUIN_ZOOM;
+  const headTop = imageTop + imageHeight * 0.035;
+  const mannequinHeadFramingPx = Math.max(0, 16 - (stageSize.height / 2 + (headTop - stageSize.height / 2) * initialScale));
+  const bellyTop = stageSize.height / 2 + (imageTop + imageHeight * 0.37 - stageSize.height / 2) * initialScale + mannequinHeadFramingPx;
+  // Keep the tattoo anchored to the body despite the fixed head framing offset.
+  const tattooFramingY = mannequinHeadFramingPx * (1 - mannequinZoom / INITIAL_MANNEQUIN_ZOOM);
+  const initialBellyY = ((bellyTop - stageSize.height / 2) / INITIAL_MANNEQUIN_ZOOM + stageSize.height / 2) / stageSize.height * 100;
+  // Frame the torso and its flash together in the usable center of the screen.
+  const initialMannequinY = stageSize.height * 0.45 - (
+    stageSize.height / 2 + (initialBellyY / 100 * stageSize.height - stageSize.height / 2) * initialMannequinZoom
+    + mannequinHeadFramingPx * (1 - initialMannequinZoom / INITIAL_MANNEQUIN_ZOOM)
+  );
+
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage) return;
+    const observer = new ResizeObserver(([entry]) => {
+      setStageSize({ width: entry.contentRect.width, height: entry.contentRect.height });
+    });
+    observer.observe(stage);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    setPlacement({ ...initialPlacement, scale: defaultFlashScale, y: initialBellyY });
+    setMannequinX(0);
+    setMannequinY(initialMannequinY);
+  }, [initialBellyY, defaultFlashScale, initialMannequinY]);
 
   useEffect(() => {
     const sources = [...Object.values(femaleViewTransitions), ...Object.values(maleViewTransitions)].filter((source): source is string => Boolean(source));
@@ -160,33 +204,10 @@ export default function PlacementStudio({ designNumber = 1, allowUpload = false 
         video.load();
       });
       if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
-      if (flashSizeTimerRef.current) clearTimeout(flashSizeTimerRef.current);
       if (captureFlashTimerRef.current) clearTimeout(captureFlashTimerRef.current);
-      if (bookPulseTimerRef.current) clearTimeout(bookPulseTimerRef.current);
     };
   }, []);
 
-  useEffect(() => {
-    const hintTimer = window.setTimeout(() => setShowCaptureHint(false), 1800);
-    return () => window.clearTimeout(hintTimer);
-  }, []);
-
-  useEffect(() => {
-    if (Math.abs(placement.scale - previousFlashScaleRef.current) < 0.005) return;
-    previousFlashScaleRef.current = placement.scale;
-    setShowFlashSize(true);
-    if (flashSizeTimerRef.current) clearTimeout(flashSizeTimerRef.current);
-    flashSizeTimerRef.current = setTimeout(() => setShowFlashSize(false), 1100);
-  }, [placement.scale]);
-
-  useEffect(() => {
-    const stageWidth = stageRef.current?.clientWidth ?? 390;
-    const stageHeight = stageRef.current?.clientHeight ?? 844;
-    const maxX = stageWidth * (0.08 + mannequinScale * 0.18);
-    const maxY = stageHeight * (0.08 + mannequinScale * 0.23);
-    setMannequinX((current) => clamp(current, -maxX, maxX));
-    setMannequinY((current) => clamp(current, -maxY, maxY));
-  }, [mannequinScale]);
 
   useEffect(() => {
     captureVersionRef.current += 1;
@@ -203,29 +224,21 @@ export default function PlacementStudio({ designNumber = 1, allowUpload = false 
   // reference width. Only tattoo pinch changes this ratio; body zoom is absent
   // from the physical calculation by design.
   const tattooZoneWidthRatio = 0.6 * (placement.scale / initialPlacement.scale);
-  const rawFlashSizeCm = tattooZoneWidthRatio * zoneReference.widthCm;
-  const rawFlashHeightCm = tattooZoneWidthRatio * zoneReference.lengthCm;
+  const rawFlashSizeCm = hasMinimumSize
+    ? minimumHeightCm * (miniDesign ? miniDesign.aspectRatio ?? 0.75 : designNumber === 9 ? 655 / 875 : hasTenCmMinimum ? 1650 / 1383 : designNumber === 5 ? 641 / 818 : designNumber === 6 ? 1024 / 1280 : 2480 / 3508) * (placement.scale / defaultFlashScale)
+    : tattooZoneWidthRatio * zoneReference.widthCm;
+  const rawFlashHeightCm = hasMinimumSize
+    ? minimumHeightCm * (placement.scale / defaultFlashScale)
+    : tattooZoneWidthRatio * zoneReference.lengthCm;
   const flashSizeCm = clamp(Math.round(rawFlashSizeCm * 2) / 2, 2, REFERENCE_BODY_HEIGHT_CM);
   const flashHeightCm = clamp(Math.round(rawFlashHeightCm * 2) / 2, 2, REFERENCE_BODY_HEIGHT_CM);
-  const bookingTitle = `TEST ${String(designNumber).padStart(2, "0")} · ${genderLabel} · ${viewLabel} · ${areaLabel} · taille ${flashSizeCm.toFixed(1)} × ${flashHeightCm.toFixed(1)} cm · rotation ${Math.round(placement.rotation)}° · ${placement.mirrored ? "miroir" : "orientation normale"} · position ${Math.round(placement.x)} / ${Math.round(placement.y)}`;
+  const bookingTitle = `${uploadedName} · ${genderLabel} · ${viewLabel} · ${areaLabel} · taille ${flashSizeCm.toFixed(1)} × ${flashHeightCm.toFixed(1)} cm · rotation ${Math.round(placement.rotation)}° · ${placement.mirrored ? "miroir" : "orientation normale"} · position ${Math.round(placement.x)} / ${Math.round(placement.y)}`;
 
-  useEffect(() => {
-    if (previousAnatomicalZoneRef.current === null) {
-      previousAnatomicalZoneRef.current = anatomicalZone;
-      return;
-    }
-    if (previousAnatomicalZoneRef.current === anatomicalZone) return;
-    previousAnatomicalZoneRef.current = anatomicalZone;
-    setShowFlashSize(true);
-    if (flashSizeTimerRef.current) clearTimeout(flashSizeTimerRef.current);
-    flashSizeTimerRef.current = setTimeout(() => setShowFlashSize(false), 1100);
-  }, [anatomicalZone]);
-
-  const resetPlacement = () => setPlacement(initialPlacement);
+  const resetPlacement = () => setPlacement({ ...initialPlacement, scale: defaultFlashScale, y: initialBellyY });
   const resetMannequin = () => {
-    setMannequinY(0);
+    setMannequinY(initialMannequinY);
     setMannequinX(0);
-    setMannequinZoom(1);
+    setMannequinZoom(initialMannequinZoom);
   };
   const changeView = (nextView: View) => {
     if (nextView === view) return;
@@ -286,15 +299,17 @@ export default function PlacementStudio({ designNumber = 1, allowUpload = false 
       }
       if (!uploadedUrl) throw new Error(copy.captureFailed);
       if (captureVersionRef.current === captureVersion) setCapturedReference(uploadedUrl);
+      return uploadedUrl;
     } catch (error) {
       console.error(error);
-      if (captureVersionRef.current === captureVersion) window.alert(copy.captureFailed);
+      return null;
     }
   };
 
   const capturePlacement = async (): Promise<string | null> => {
     const stage = stageRef.current;
-    if (!stage || capturing || transitionPlaying) return null;
+    if (!stage || captureInFlight.current || transitionPlaying) return null;
+    captureInFlight.current = true;
     const captureVersion = ++captureVersionRef.current;
     setCapturedReference(null);
     setCaptureFlash(true);
@@ -328,26 +343,22 @@ export default function PlacementStudio({ designNumber = 1, allowUpload = false 
       }
 
       setCapturedPreview(dataUrl);
-      setBookPulse(true);
-      if (bookPulseTimerRef.current) clearTimeout(bookPulseTimerRef.current);
-      bookPulseTimerRef.current = setTimeout(() => setBookPulse(false), 1500);
-      void uploadPlacement(dataUrl, captureVersion);
+      const uploaded = await uploadPlacement(dataUrl, captureVersion);
+      if (!uploaded) throw new Error(copy.captureFailed);
       return dataUrl;
     } catch (error) {
       console.error(error);
       window.alert(copy.captureFailed);
       return null;
     } finally {
+      captureInFlight.current = false;
       setCapturing(false);
     }
   };
 
   const openBooking = async () => {
-    setBookPulse(false);
-    if (!capturedPreview) {
-      const placementPreview = await capturePlacement();
-      if (!placementPreview) return;
-    }
+    const placementPreview = await capturePlacement();
+    if (!placementPreview) return;
     setBookingOpen(true);
   };
 
@@ -366,14 +377,17 @@ export default function PlacementStudio({ designNumber = 1, allowUpload = false 
     if (points.length > 1) {
       const distance = Math.hypot(points[1].x - points[0].x, points[1].y - points[0].y);
       const angle = Math.atan2(points[1].y - points[0].y, points[1].x - points[0].x) * 180 / Math.PI;
-      next.scale = clamp(gesture.placement.scale * (distance / gesture.distance), 0.18, 2.5);
-      next.rotation = gesture.placement.rotation + angle - gesture.angle;
+      next.scale = clamp(gesture.placement.scale * (distance / Math.max(gesture.distance, 1)), maximumHeightCm ? defaultFlashScale / 3 : hasMinimumSize ? defaultFlashScale : 0.18, maximumHeightCm ? defaultFlashScale : 2.5);
+      const angleDelta = ((angle - gesture.angle + 540) % 360) - 180;
+      next.rotation = gesture.placement.rotation + angleDelta;
     }
     setPlacement(next);
   };
 
-  const startGesture = (event: ReactPointerEvent<HTMLDivElement>) => {
-    event.currentTarget.setPointerCapture(event.pointerId);
+  const startGesture = (event: ReactPointerEvent<HTMLElement>) => {
+    event.stopPropagation();
+    event.preventDefault();
+    stageRef.current?.setPointerCapture(event.pointerId);
     pointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
     const points = [...pointersRef.current.values()];
     const center = points.length === 1 ? points[0] : { x: (points[0].x + points[1].x) / 2, y: (points[0].y + points[1].y) / 2 };
@@ -384,12 +398,13 @@ export default function PlacementStudio({ designNumber = 1, allowUpload = false 
       angle: points.length > 1 ? Math.atan2(points[1].y - points[0].y, points[1].x - points[0].x) * 180 / Math.PI : 0,
     };
   };
-  const moveGesture = (event: ReactPointerEvent<HTMLDivElement>) => {
+  const moveGesture = (event: ReactPointerEvent<HTMLElement>) => {
     if (!pointersRef.current.has(event.pointerId)) return;
     pointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
     updateGesture();
   };
-  const endGesture = (event: ReactPointerEvent<HTMLDivElement>) => {
+  const endGesture = (event: ReactPointerEvent<HTMLElement>) => {
+    if (!pointersRef.current.has(event.pointerId)) return;
     pointersRef.current.delete(event.pointerId);
     gestureRef.current = null;
     if (pointersRef.current.size === 1) {
@@ -413,11 +428,23 @@ export default function PlacementStudio({ designNumber = 1, allowUpload = false 
     // disappear completely at high zoom levels.
     const stageWidth = stageRef.current?.clientWidth ?? 390;
     const stageHeight = stageRef.current?.clientHeight ?? 844;
-    const maxMannequinX = stageWidth * (0.08 + mannequinScale * 0.18);
-    const maxMannequinY = stageHeight * (0.08 + mannequinScale * 0.23);
+    const maxMannequinX = Math.max(Math.abs(joystick.mannequinX), stageWidth * (0.08 + mannequinScale * 0.18));
+    const maxMannequinY = Math.max(Math.abs(joystick.mannequinY), stageHeight * (0.08 + mannequinScale * 0.23));
     setJoystickPosition({ x, y });
     setMannequinX(clamp(joystick.mannequinX + rawX * 3.2, -maxMannequinX, maxMannequinX));
     setMannequinY(clamp(joystick.mannequinY + rawY * 3.2, -maxMannequinY, maxMannequinY));
+  };
+
+  const zoomOnFlash = (factor: number) => {
+    const nextZoom = clamp(Number((mannequinZoom * factor).toFixed(2)), INITIAL_MANNEQUIN_ZOOM, maxMannequinZoom);
+    if (nextZoom === mannequinZoom) return;
+    const width = stageRef.current?.clientWidth ?? stageSize.width;
+    const height = stageRef.current?.clientHeight ?? stageSize.height;
+    // Frame the flash above the booking controls and move both layers together.
+    const nextFramingY = mannequinHeadFramingPx * (1 - nextZoom / INITIAL_MANNEQUIN_ZOOM);
+    setMannequinX(-(placement.x / 100 - 0.5) * width * nextZoom);
+    setMannequinY(height * (0.45 - 0.5) - (placement.y / 100 - 0.5) * height * nextZoom - nextFramingY);
+    setMannequinZoom(nextZoom);
   };
 
   const releaseJoystick = (event: ReactPointerEvent<HTMLButtonElement>) => {
@@ -428,8 +455,16 @@ export default function PlacementStudio({ designNumber = 1, allowUpload = false 
 
   return (
     <main className="relative h-dvh overflow-hidden bg-[#181818] text-white">
-      <section ref={stageRef} className="absolute inset-0 select-none overflow-hidden bg-white">
-        <div className="pointer-events-none absolute inset-0 will-change-transform" style={{ transform: `translate3d(${mannequinX}px, calc(${mannequinY}px + ${mannequinHeadFramingVh}dvh), 0) scale(${mannequinScale})`, transformOrigin: "center center" }}>
+      <section ref={stageRef}
+        onPointerDown={(event) => {
+          // Track both fingers across the whole mannequin, including outside the tiny flash.
+          if (!(event.target as HTMLElement).closest("[data-no-camera], button, a, input")) startGesture(event);
+        }}
+        onPointerMove={moveGesture}
+        onPointerUp={endGesture}
+        onPointerCancel={endGesture}
+        className="absolute inset-0 touch-none select-none overflow-hidden bg-white">
+        <div className="pointer-events-none absolute inset-0 will-change-transform" style={{ transform: `translate3d(${mannequinX}px, calc(${mannequinY}px + ${mannequinHeadFramingPx}px), 0) scale(${mannequinScale})`, transformOrigin: "center center" }}>
           <Image
           key={`${gender}-${view}-${anatomicalZone}`}
           src={mannequinSrc}
@@ -479,28 +514,48 @@ export default function PlacementStudio({ designNumber = 1, allowUpload = false 
 
         <header className="pointer-events-none absolute inset-x-0 top-0 z-30 flex justify-end px-4 pt-[max(12px,env(safe-area-inset-top))] text-black sm:px-6">
           <div data-no-camera className="pointer-events-auto flex gap-2">
-            <button type="button" onClick={() => setPlacement((current) => ({ ...current, mirrored: !current.mirrored }))} aria-label={copy.mirror} aria-pressed={placement.mirrored} className={`grid size-9 place-items-center text-xl drop-shadow-[0_1px_3px_rgba(255,255,255,0.9)] transition-opacity ${placement.mirrored ? "text-black" : "text-black/55"}`}>↔</button>
-            <button type="button" onClick={() => router.push(`/flashbook/gallery?offer=flash&selected=${designNumber}`)} aria-label={copy.close} className="grid size-9 place-items-center text-3xl leading-none text-black/60 drop-shadow-[0_1px_3px_rgba(255,255,255,0.9)] transition-colors hover:text-black">×</button>
+            <button type="button" popoverTarget="studio-gesture-help" aria-label={{ fr: "Aide pour ajuster le flash", en: "Help adjusting your flash", de: "Hilfe zum Anpassen des Flashs", es: "Ayuda para ajustar tu flash" }[locale]} className="grid size-9 place-items-center text-[#686b70] transition-colors hover:text-[#e70101]">
+              <span aria-hidden="true" className="grid size-5 place-items-center rounded-full border border-current text-[12px] font-medium">?</span>
+            </button>
+            <button type="button" onClick={() => setPlacement((current) => ({ ...current, mirrored: !current.mirrored }))} aria-label={copy.mirror} aria-pressed={placement.mirrored} className={`grid size-9 place-items-center text-xl drop-shadow-[0_1px_3px_rgba(255,255,255,0.9)] transition-opacity ${placement.mirrored ? "text-[#e70101]" : "text-[#686b70]"}`}>↔</button>
+
+            <button type="button" onClick={() => router.push("/flashbook?return=gallery#designs", { scroll: false })} aria-label={copy.close} className="grid size-9 place-items-center text-3xl leading-none text-black/60 drop-shadow-[0_1px_3px_rgba(255,255,255,0.9)] transition-colors hover:text-black">×</button>
           </div>
         </header>
+        <div data-no-camera>
+<div id="studio-gesture-help" popover="auto" aria-labelledby="studio-gesture-help-title" className="fixed bottom-auto left-auto right-4 top-[max(64px,calc(env(safe-area-inset-top)+56px))] m-0 w-[300px] max-w-[calc(100vw-32px)] rounded-2xl border border-black/10 bg-[#fffaf1]/95 px-4 py-3 text-[#686b70] shadow-lg backdrop-blur">
+          <p id="studio-gesture-help-title" className="mb-1.5 text-[11px] font-semibold text-black/65">{gestureHelp[locale].title}</p>
+          <ul className="space-y-1">
+            {gestureHelp[locale].steps.map((step, index) => (
+              <li key={step} className="flex items-center gap-2 text-[10px] leading-4 sm:text-[11px]">
+                <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                  {index === 0 ? <path d="M4 12h16m-4-4 4 4-4 4M8 8l-4 4 4 4" /> : index === 1 ? <path d="m4 4 6 6m10 10-6-6M4 9V4h5m11 11v5h-5" /> : <><path d="M20 10a8 8 0 1 0-2 8M20 4v6h-6" /><circle cx="12" cy="12" r="1" /></>}
+                </svg>
+                <span>{step}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+        </div>
 
-        <div data-no-camera className="absolute right-3 top-1/2 z-30 grid -translate-y-1/2 grid-cols-2 overflow-hidden rounded-[22px] border border-black/10 bg-white/90 text-black shadow-lg backdrop-blur sm:right-5">
-          <button type="button" onClick={() => setMannequinZoom((current) => clamp(Number((current * 1.5).toFixed(2)), 1, 5))} disabled={mannequinZoom >= 5} aria-label={copy.zoomIn} className="grid size-10 place-items-center border-b border-r border-black/10 transition-colors active:bg-black/10 disabled:cursor-default disabled:text-black/25">
+                    <div data-no-camera className="absolute right-3 top-1/2 z-30 grid -translate-y-1/2 grid-cols-2 rounded-[22px] border border-black/10 bg-white/90 text-black shadow-lg backdrop-blur sm:right-5">
+          <button type="button" onClick={() => zoomOnFlash(1.5)} disabled={mannequinZoom >= maxMannequinZoom} aria-label={copy.zoomIn} className="grid size-10 place-items-center border-b border-r border-black/10 transition-colors active:bg-black/10 disabled:cursor-default disabled:text-black/25">
             <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className="size-5">
               <circle cx="10.5" cy="10.5" r="6.25" />
               <path d="m15.2 15.2 4.3 4.3M10.5 7.8v5.4M7.8 10.5h5.4" />
             </svg>
           </button>
-          <button type="button" onClick={() => setMannequinZoom((current) => clamp(Number((current / 1.5).toFixed(2)), 1, 5))} disabled={mannequinZoom <= 1} aria-label={copy.zoomOut} className="grid size-10 place-items-center border-b border-black/10 transition-colors active:bg-black/10 disabled:cursor-default disabled:text-black/25">
+          <button type="button" onClick={() => zoomOnFlash(1 / 1.5)} disabled={mannequinZoom <= INITIAL_MANNEQUIN_ZOOM} aria-label={copy.zoomOut} className="grid size-10 place-items-center border-b border-black/10 transition-colors active:bg-black/10 disabled:cursor-default disabled:text-black/25">
             <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" className="size-5">
               <circle cx="10.5" cy="10.5" r="6.25" />
               <path d="m15.2 15.2 4.3 4.3M7.8 10.5h5.4" />
             </svg>
           </button>
-          <div className="col-span-2 grid h-[82px] place-items-center p-2">
+          <div className="col-span-2 grid place-items-center gap-1 p-2">
             <button
               type="button"
               aria-label={copy.moveMannequin}
+              title={{ fr: "Glisse pour déplacer le mannequin", en: "Drag to move the mannequin", de: "Ziehen, um das Modell zu bewegen", es: "Arrastra para mover el maniquí" }[locale]}
               onPointerDown={(event) => {
                 event.currentTarget.setPointerCapture(event.pointerId);
                 joystickRef.current = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, mannequinX, mannequinY };
@@ -508,52 +563,64 @@ export default function PlacementStudio({ designNumber = 1, allowUpload = false 
               onPointerMove={moveJoystick}
               onPointerUp={releaseJoystick}
               onPointerCancel={releaseJoystick}
-              className="relative grid size-[66px] touch-none place-items-center rounded-full border border-black/10 bg-black/[0.06] shadow-inner"
+              className="relative grid size-[66px] touch-none cursor-grab place-items-center rounded-full border border-black/10 bg-black/[0.04] shadow-inner active:cursor-grabbing"
             >
               <span className="pointer-events-none absolute inset-2 rounded-full border border-black/[0.06]" />
-              <span className="pointer-events-none size-7 rounded-full bg-black shadow-[0_3px_8px_rgba(0,0,0,0.28)] transition-transform duration-75" style={{ transform: `translate(${joystickPosition.x}px, ${joystickPosition.y}px)` }} />
+              <span aria-hidden="true" className="pointer-events-none absolute inset-0 text-[10px] text-black/40"><span className="absolute left-1/2 top-0 -translate-x-1/2">▴</span><span className="absolute bottom-0 left-1/2 -translate-x-1/2">▾</span><span className="absolute left-1 top-1/2 -translate-y-1/2">◂</span><span className="absolute right-1 top-1/2 -translate-y-1/2">▸</span></span>
+              <span className="pointer-events-none grid size-8 place-items-center rounded-full border border-[#e70101]/20 bg-[#fffaf1] text-[#e70101] shadow-[0_2px_5px_rgba(0,0,0,0.10)] transition-transform duration-75" style={{ transform: `translate(${joystickPosition.x}px, ${joystickPosition.y}px)` }}>
+                <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3v18M3 12h18m-12-6 3-3 3 3m-6 12 3 3 3-3M6 9l-3 3 3 3m12-6 3 3-3 3" /></svg>
+              </span>
             </button>
+            <span className="pointer-events-none text-[9px] text-[#686b70]">{{ fr: "Déplacer", en: "Move", de: "Bewegen", es: "Mover" }[locale]}</span>
           </div>
+
         </div>
 
-        <button data-no-camera type="button" onClick={() => void capturePlacement()} disabled={capturing || transitionPlaying} aria-label={capturedReference ? copy.retake : copy.capture} className={`absolute left-3 top-1/2 z-30 h-16 -translate-y-1/2 overflow-hidden rounded-full border border-black/10 bg-white/90 text-left text-black shadow-lg backdrop-blur transition-[width,opacity] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] disabled:opacity-40 sm:left-5 ${showCaptureHint || capturing ? "w-[210px]" : "w-16"}`}>
-          <span className={`absolute top-1/2 grid size-11 -translate-y-1/2 place-items-center transition-[left,transform] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] ${showCaptureHint || capturing ? "left-2.5" : "left-1/2 -translate-x-1/2"}`}>
-            {capturedPreview ? <img src={capturedPreview} alt="" className="size-11 rounded-full object-cover" /> : capturing ? <span className="grid size-11 place-items-center animate-pulse text-xs">•••</span> : (
-              <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="size-8">
-                <path d="M3.5 8.5A2.5 2.5 0 0 1 6 6h2l1.2-1.8h5.6L16 6h2a2.5 2.5 0 0 1 2.5 2.5v8A2.5 2.5 0 0 1 18 19H6a2.5 2.5 0 0 1-2.5-2.5z" />
-                <circle cx="12" cy="12.5" r="3.5" />
-              </svg>
-            )}
-          </span>
-          <span className={`absolute left-[66px] top-1/2 w-[130px] -translate-y-1/2 text-[11px] font-semibold leading-tight transition-opacity duration-150 ${showCaptureHint || capturing ? "opacity-100" : "pointer-events-none opacity-0"}`}>
-            {capturing ? copy.capturing : capturedReference ? copy.retake : copy.capture}
-          </span>
-        </button>
+
+
+
 
         <div data-no-camera aria-hidden className={`pointer-events-none absolute inset-0 z-[80] bg-white transition-opacity duration-300 ${captureFlash ? "opacity-95 duration-75" : "opacity-0"}`} />
 
-        <div className="pointer-events-none absolute inset-0 will-change-transform" style={{ transform: `translate3d(${mannequinX}px, ${mannequinY}px, 0) scale(${mannequinZoom})`, transformOrigin: "center center" }}>
-          <div className="absolute left-0 top-0 h-full w-full" style={{ transform: `translate(${placement.x}%, ${placement.y}%) rotate(${placement.rotation}deg) scale(${placement.scale}) scaleX(${placement.mirrored ? -1 : 1})`, transformOrigin: "0 0", mixBlendMode: "multiply" }}>
-            <div onPointerDown={startGesture} onPointerMove={moveGesture} onPointerUp={endGesture} onPointerCancel={endGesture} className="pointer-events-auto relative h-[30%] w-[72%] -translate-x-1/2 -translate-y-1/2 touch-none cursor-grab active:cursor-grabbing">
+        <div className="pointer-events-none absolute inset-0 will-change-transform" style={{ transform: `translate3d(${mannequinX}px, ${mannequinY + tattooFramingY}px, 0) scale(${mannequinZoom})`, transformOrigin: "center center", mixBlendMode: "multiply", opacity: designNumber === 5 ? 0.88 : 1 }}>
+          <div className="absolute left-0 top-0 h-full w-full" style={{ transform: `translate(${placement.x}%, ${placement.y}%) rotate(${placement.rotation}deg) scale(${placement.scale}) scaleX(${placement.mirrored ? -1 : 1})`, transformOrigin: "0 0" }}>
+            <div className="pointer-events-auto relative h-[30%] w-[72%] -translate-x-1/2 -translate-y-1/2 touch-none cursor-grab active:cursor-grabbing" style={miniDesign ? {
+              height: imageHeight * mannequinBaseScale * (minimumHeightCm / REFERENCE_BODY_HEIGHT_CM) / defaultFlashScale,
+              width: imageHeight * mannequinBaseScale * (minimumHeightCm / REFERENCE_BODY_HEIGHT_CM) * (miniDesign?.aspectRatio ?? 0.75) / defaultFlashScale,
+            } : undefined}>
               <Image src={designSrc} alt="Design à positionner" fill unoptimized sizes="70vw" className="pointer-events-none object-contain" />
             </div>
           </div>
         </div>
 
-        <div data-no-camera className="pointer-events-none absolute bottom-[212px] left-1/2 z-20 -translate-x-1/2 whitespace-nowrap rounded-full bg-black/75 px-3 py-1.5 text-[10px] text-white/90 shadow-lg backdrop-blur sm:bottom-[232px]">{copy.gesture}</div>
 
-        <div data-no-camera aria-live="polite" className={`pointer-events-none absolute left-1/2 top-[72px] z-30 -translate-x-1/2 rounded-full border border-black/10 bg-white/85 px-3 py-1 font-mono text-[11px] font-medium tabular-nums text-black/65 shadow-sm backdrop-blur transition-all duration-200 ${showFlashSize ? "translate-y-0 opacity-100" : "-translate-y-1 opacity-0"}`}>
+
+
+
+        <div data-no-camera aria-live="polite" className="pointer-events-none absolute left-1/2 top-[72px] z-30 -translate-x-1/2 rounded-full border border-black/10 bg-white/85 px-3 py-1 font-mono text-[11px] font-medium tabular-nums text-black/65 shadow-sm backdrop-blur">
           {new Intl.NumberFormat(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(flashSizeCm)} × {new Intl.NumberFormat(locale, { minimumFractionDigits: 1, maximumFractionDigits: 1 }).format(flashHeightCm)} cm
         </div>
 
-        <aside data-no-camera className="absolute inset-x-2 bottom-[max(8px,env(safe-area-inset-bottom))] z-30 rounded-[26px] border border-black/10 bg-[#f3f1ec]/95 p-2.5 text-black shadow-[0_-8px_30px_rgba(0,0,0,0.12)] backdrop-blur-xl sm:inset-x-4 sm:mx-auto sm:max-w-xl sm:p-3">
+        <aside data-no-camera className="absolute inset-x-2 bottom-[max(8px,env(safe-area-inset-bottom))] z-30 rounded-[26px] border border-black/10 bg-[#fffaf1]/95 p-2.5 text-black shadow-[0_-8px_30px_rgba(0,0,0,0.12)] backdrop-blur-xl sm:inset-x-4 sm:mx-auto sm:max-w-xl sm:p-3">
           <div className="mb-2 flex items-center justify-between px-1">
             <p className="truncate font-mono text-[9px] uppercase tracking-[0.18em] text-black/40">{uploadedName}</p>
             {allowUpload && <label className="cursor-pointer rounded-full bg-black px-3 py-1.5 text-[10px] font-semibold text-white">{copy.import}<input type="file" accept="image/png,image/webp,image/jpeg" onChange={uploadDesign} className="sr-only" /></label>}
           </div>
-          <CompactChoices items={copy.genders} value={gender} onChange={(next) => { setGender(next); setViewTransition(null); resetPlacement(); resetMannequin(); }} />
-          <CompactChoices items={copy.views} value={view} onChange={changeView} />
-          {!allowUpload && <button type="button" onClick={() => void openBooking()} disabled={capturing || transitionPlaying} className={`mt-2 flex w-full items-center justify-between gap-3 rounded-full bg-black px-5 py-3 text-xs font-semibold text-white transition-[transform,box-shadow,opacity] disabled:opacity-50 ${bookPulse ? "animate-pulse scale-[1.015] shadow-[0_0_0_4px_rgba(255,255,255,0.72),0_8px_22px_rgba(0,0,0,0.24)]" : ""}`}><span>{capturing ? copy.capturing : copy.book}</span><span aria-hidden>→</span></button>}
+          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 gap-1 rounded-full border border-black/10 bg-white/50 p-1">
+            {copy.genders.map((item) => (
+              <button key={item.value} type="button" aria-label={item.label} title={item.label} aria-pressed={gender === item.value}
+                onClick={() => { setGender(item.value); setViewTransition(null); resetPlacement(); resetMannequin(); }}
+                className={`grid size-10 place-items-center rounded-full transition-colors ${gender === item.value ? "bg-[#fffaf1] text-[#e70101]" : "text-[#686b70] hover:text-[#e70101]"}`}>
+                <svg aria-hidden="true" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  {item.value === "female" ? <><circle cx="12" cy="8" r="5" /><path d="M12 13v8m-3-3h6" /></> : <><circle cx="9" cy="15" r="5" /><path d="m13 11 7-7m-5 0h5v5" /></>}
+                </svg>
+              </button>
+            ))}
+          </div>
+          <div className="min-w-0 flex-1"><CompactChoices items={copy.views} value={view} onChange={changeView} /></div>
+          </div>
+          {!allowUpload && <button type="button" onClick={() => void openBooking()} disabled={capturing || transitionPlaying} className={`mt-2 flex w-full items-center justify-between gap-3 rounded-full bg-[#e70101] px-5 py-3 text-xs font-semibold text-[#fffaf1] transition-[transform,box-shadow,opacity] disabled:opacity-50`}><span>{capturing ? copy.capturing : copy.book}</span><span aria-hidden>→</span></button>}
         </aside>
       </section>
       <BookingSheet open={bookingOpen} onClose={() => setBookingOpen(false)} flashTitle={bookingTitle} capturedReference={capturedReference ?? undefined} capturedPreview={capturedPreview ?? undefined} />
@@ -563,6 +630,6 @@ export default function PlacementStudio({ designNumber = 1, allowUpload = false 
 
 function CompactChoices<T extends string>({ items, value, onChange, compact = false }: { items: { value: T; label: string }[]; value: T; onChange: (value: T) => void; compact?: boolean }) {
   return <div className={`mt-1.5 grid gap-1 rounded-full bg-black/[0.055] p-1 ${compact ? "grid-cols-3" : items.length === 2 ? "grid-cols-2" : "grid-cols-3"}`}>
-    {items.map((item) => <button key={item.value} type="button" onClick={() => onChange(item.value)} className={`min-w-0 rounded-full px-2 py-2 text-[11px] font-medium transition-colors sm:text-xs ${value === item.value ? "bg-black text-white shadow-sm" : "text-black/50"}`}>{item.label}</button>)}
+    {items.map((item) => <button key={item.value} type="button" onClick={() => onChange(item.value)} className={`min-w-0 rounded-full px-2 py-2 text-[11px] font-medium transition-colors sm:text-xs ${value === item.value ? "bg-[#fffaf1] text-[#e70101]" : "text-[#686b70]"}`}>{item.label}</button>)}
   </div>;
 }

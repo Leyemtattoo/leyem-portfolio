@@ -7,6 +7,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import BookingSheet from "@/components/booking/BookingSheet";
 import { useTranslation } from "@/components/i18n/LanguageProvider";
 import { framaBlack } from "@/app/fonts";
+import { miniFlashDesigns, miniFlashName, miniFlashPrice, miniFlashStyle } from "./miniFlashes";
 
 const mannequinTransition = "/videos/mannequin-transition.mp4";
 const mannequinTransition2 = "/videos/mannequin-transition-2.mp4";
@@ -67,7 +68,7 @@ const placementDetails: Record<BodyArea, { size: string; price: number; duration
 };
 
 const flashCatalog: Record<TestNumber, { theme: FlashTheme; price: number; placement: BodyArea }> = {
-  1: { theme: "realism", price: 480, placement: "torso" },
+  1: { theme: "realism", price: 300, placement: "torso" },
   2: { theme: "blackwork", price: 320, placement: "forearm" },
   3: { theme: "ornamental", price: 390, placement: "leg" },
   4: { theme: "erotic", price: 450, placement: "thigh" },
@@ -83,9 +84,13 @@ const themeLabelKeys: Record<FlashTheme, "flashbook.themeRealism" | "flashbook.t
 export default function FlashbookBook({
   onFullscreenChange,
   initialSelectedTest,
+  embedded = false,
+  onSelectMini,
 }: {
   onFullscreenChange?: (fullscreen: boolean) => void;
   initialSelectedTest?: TestNumber;
+  embedded?: boolean;
+  onSelectMini?: (index: number) => void;
 }) {
   const mannequinTransitionRef = useRef<HTMLVideoElement>(null);
   const mannequinTransition2Ref = useRef<HTMLVideoElement>(null);
@@ -97,6 +102,7 @@ export default function FlashbookBook({
   const reverseSwapTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const designPlayFallbackRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cardsScrollerRef = useRef<HTMLDivElement>(null);
+  const galleryScroll = useRef<number | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(Boolean(initialSelectedTest));
   const [activeMannequinVideo, setActiveMannequinVideo] = useState<0 | 1 | 2>(0);
   const [isDesignToFaceTransitioning, setIsDesignToFaceTransitioning] = useState(false);
@@ -111,13 +117,55 @@ export default function FlashbookBook({
   const [selectedBodyArea, setSelectedBodyArea] = useState<BodyArea>("torso");
   const [selectedTorsoVariant, setSelectedTorsoVariant] = useState<TorsoVariant>("center");
   const [selectedTest, setSelectedTest] = useState<TestNumber>(initialSelectedTest ?? 1);
-  const [themeFilter, setThemeFilter] = useState<"all" | FlashTheme>("all");
+  const themeFilter = "all";
+  const priceFilter = "all";
+  const sizeFilter = "all";
   const [isFlashBookingOpen, setIsFlashBookingOpen] = useState(false);
+  const [featuredDesign, setFeaturedDesign] = useState<1 | 5 | 6 | 7 | 8 | 9>(5);
+  const [skullOpen, setSkullOpen] = useState(false);
+  const [skullBookingOpen, setSkullBookingOpen] = useState(false);
+  const skullDialog = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    if (skullOpen) skullDialog.current?.showModal();
+    else skullDialog.current?.close();
+  }, [skullOpen]);
   const [, setIsInfoPanelOpen] = useState(false);
   const [isFullscreenInfoOpen, setIsFullscreenInfoOpen] = useState(false);
   const [hasOpenedFullscreenInfo, setHasOpenedFullscreenInfo] = useState(false);
   const reduceMotion = useReducedMotion();
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
+  const miniCopy = {
+    fr: { filter: "Mini flashs", view: "Découvrir", hint: "Découvre les mini flashs et essaie ton préféré sur le corps." },
+    en: { filter: "Mini flashes", view: "View", hint: "Discover the mini flashes and try your favorite on your body." },
+    de: { filter: "Mini-Flashs", view: "Ansehen", hint: "Entdecke die Mini-Flashs und probiere deinen Favoriten am Körper aus." },
+    es: { filter: "Mini flashs", view: "Ver", hint: "Descubre los mini flashs y prueba tu favorito en el cuerpo." },
+  }[locale];
+  const filterCopy = {
+    fr: { size: "Filtrer par taille", allSizes: "Toutes les tailles", pending: "À confirmer", under: "Moins de 200 €", small: "Jusqu’à 10 cm", medium: "10 – 20 cm", large: "20 cm et plus", note: "Les prix et tailles des mini flashs restent à confirmer." },
+    en: { size: "Filter by size", allSizes: "All sizes", pending: "To be confirmed", under: "Under €200", small: "Up to 10 cm", medium: "10 – 20 cm", large: "20 cm and above", note: "Mini flash prices and sizes are to be confirmed." },
+    de: { size: "Nach Größe filtern", allSizes: "Alle Größen", pending: "Noch zu bestätigen", under: "Unter 200 €", small: "Bis 10 cm", medium: "10 – 20 cm", large: "Ab 20 cm", note: "Preise und Größen der Mini-Flashs werden noch bestätigt." },
+    es: { size: "Filtrar por tamaño", allSizes: "Todos los tamaños", pending: "Por confirmar", under: "Menos de 200 €", small: "Hasta 10 cm", medium: "10 – 20 cm", large: "20 cm o más", note: "Los precios y tamaños de los mini flashs están por confirmar." },
+  }[locale];
+  useLayoutEffect(() => {
+    if (new URLSearchParams(window.location.search).get("return") !== "gallery") return;
+    let scroll: number | null = null;
+    try {
+      const saved = JSON.parse(sessionStorage.getItem("flashbook-gallery-return") ?? "null");
+      if (saved) {
+        if (typeof saved.scroll === "number" && Number.isFinite(saved.scroll) && saved.scroll >= 0) scroll = saved.scroll;
+      }
+    } catch { /* The gallery anchor remains available without session storage. */ }
+    let secondFrame = 0;
+    const firstFrame = requestAnimationFrame(() => {
+      secondFrame = requestAnimationFrame(() => {
+        if (scroll !== null) window.scrollTo({ top: scroll, behavior: "instant" });
+        else document.getElementById("designs")?.scrollIntoView({ block: "start", behavior: "instant" });
+        try { sessionStorage.removeItem("flashbook-gallery-return"); } catch {}
+      });
+    });
+    return () => { cancelAnimationFrame(firstFrame); cancelAnimationFrame(secondFrame); };
+  }, []);
+
   useLayoutEffect(() => {
     onFullscreenChange?.(isFullscreen);
   }, [isFullscreen, onFullscreenChange]);
@@ -155,6 +203,7 @@ export default function FlashbookBook({
   }, []);
 
   const openFromFullscreenIcon = (targetTest: TestNumber = selectedTest) => {
+    galleryScroll.current = window.scrollY;
     setSelectedTest(targetTest);
     setActiveMannequinVideo(0);
     setIsDesignToFaceTransitioning(false);
@@ -526,11 +575,19 @@ export default function FlashbookBook({
         : "flashbook.positionLow");
   const selectedTestName = String(selectedTest).padStart(2, "0");
   const featuredFlash = flashImages[selectedTest];
-  const filteredTests = ([1, 2, 3, 4] as const).filter((testNumber) => {
-    const flash = flashCatalog[testNumber];
-    return themeFilter === "all" || flash.theme === themeFilter;
-  });
-  const hasActiveFilters = themeFilter !== "all";
+  const filteredMiniFlashes = miniFlashDesigns.map((design, index) => ({ design, index }));
+  const showMiniFlashes = filteredMiniFlashes.length > 0 && Boolean(onSelectMini);
+  const featuredName = featuredDesign === 9 ? "Just pray" : featuredDesign === 7 ? "Medusam" : featuredDesign === 8 ? "Medus@" : featuredDesign === 6 ? "Arkansas lovin’ man" : featuredDesign === 1 ? "Mary Bird" : "Angel skull";
+  const featuredImage = featuredDesign === 9 ? "/images/flashbook/just-pray.png" : featuredDesign === 7 ? "/images/flashbook/medusam.png" : featuredDesign === 8 ? "/images/flashbook/medusa.png" : featuredDesign === 6 ? "/images/flashbook/arkansas-lovin-man.png" : featuredDesign === 1 ? flashImages[1] : "/images/walkins/angel-skull-full.png";
+  const arkansasDetails = { fr: "Dès 6 cm · À partir de 300 €", en: "From 6 cm · From €300", de: "Ab 6 cm · Ab 300 €", es: "Desde 6 cm · Desde 300 €" }[locale];
+  const medusaDetails = { fr: "Dès 10 cm · À partir de 400 €", en: "From 10 cm · From €400", de: "Ab 10 cm · Ab 400 €", es: "Desde 10 cm · Desde 400 €" }[locale];
+  const justPrayDetails = { fr: "Dès 7 cm · À partir de 300 €", en: "From 7 cm · From €300", de: "Ab 7 cm · Ab 300 €", es: "Desde 7 cm · Desde 300 €" }[locale];
+  const skullCopy = {
+    fr: { minimum: "Dès 6 cm", pending: "Dès 6 cm · À partir de 300 €", view: "Voir le flash", book: "Demander ce flash" },
+    en: { minimum: "From 6 cm", pending: "From 6 cm · From €300", view: "View flash", book: "Request this flash" },
+    de: { minimum: "Ab 6 cm", pending: "Ab 6 cm · Ab 300 €", view: "Flash ansehen", book: "Dieses Flash anfragen" },
+    es: { minimum: "Desde 6 cm", pending: "Desde 6 cm · Desde 300 €", view: "Ver flash", book: "Solicitar este flash" },
+  }[locale];
   const showFeaturedCarousel: boolean = false;
   const fullscreenTransition = { duration: reduceMotion ? 0 : 0.9, ease: [0.16, 1, 0.3, 1] as const };
   const fullscreenRevealTransition = { duration: reduceMotion ? 0 : 0.58, ease: [0.22, 1, 0.36, 1] as const };
@@ -554,13 +611,13 @@ export default function FlashbookBook({
 
   return (
     <>
-      <section id="flashbook" aria-label="Flashbook" className="relative h-dvh bg-[#242424]">
-        <div className="relative h-dvh overflow-hidden">
+      <section id="flashbook" aria-label="Flashbook" className={embedded ? "relative bg-[#242424]" : "relative h-dvh bg-[#242424]"}>
+        <div className={embedded ? "relative" : "relative h-dvh overflow-hidden"}>
         <motion.div
           ref={cardsScrollerRef}
           aria-label={t("flashbook.flashAlt")}
           onScroll={() => setIsInfoPanelOpen(false)}
-          className="absolute inset-0 z-40 snap-y snap-proximity overflow-y-auto bg-[#242424] [touch-action:pan-y] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className={embedded ? "relative bg-[#242424]" : "absolute inset-0 z-40 snap-y snap-proximity overflow-y-auto bg-[#242424] [touch-action:pan-y] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"}
         >
           {showFeaturedCarousel && ([1, 2, 3, 4] as const).map((cardTest) => {
             const cardFlash = flashImages[cardTest];
@@ -713,88 +770,34 @@ export default function FlashbookBook({
           </div>
             );
           })}
-          <section aria-labelledby="all-flashes-title" className="min-h-dvh snap-start bg-[#f2f0ec] px-4 pb-24 pt-[calc(24px+env(safe-area-inset-top))] text-[#171717] sm:px-8">
+          <section aria-labelledby="all-flashes-title" className="min-h-dvh w-full max-w-full touch-pan-y snap-start overflow-x-clip bg-[#fffaf1] px-4 pb-24 pt-[calc(24px+env(safe-area-inset-top))] text-[#171717] sm:px-8">
             <div className="mx-auto max-w-5xl">
               <div className="mb-10 border-b border-black/15 pb-5">
                 <div>
                   <p className="mb-3 font-mono text-[10px] uppercase tracking-[0.3em] text-black/45 sm:text-xs">Flashs</p>
-                  <h2 id="all-flashes-title" className={`${framaBlack.className} text-[clamp(2.65rem,10vw,6.8rem)] uppercase leading-[0.84] tracking-[-0.055em]`}>
+                  <h2 id="all-flashes-title" className={`${framaBlack.className} text-[#e70101] max-w-full break-words text-[clamp(2.25rem,9vw,6.8rem)] uppercase leading-[0.84] tracking-[-0.055em]`}>
                     {t("flashbook.allFlashes")}
                   </h2>
                   <p className="mt-4 max-w-md text-[12px] leading-relaxed text-black/50 sm:text-sm">
-                    {t("flashbook.chooseToTry")}
+                    {onSelectMini ? miniCopy.hint : t("flashbook.chooseToTry")}
                   </p>
                 </div>
               </div>
 
-              <div className="mb-8 rounded-[24px] border border-black/[0.07] bg-white/65 p-3 shadow-[0_8px_26px_rgba(0,0,0,0.04)] backdrop-blur-xl sm:p-4">
-                <div>
-                  <label className="relative">
-                    <span className="sr-only">{t("flashbook.filterTheme")}</span>
-                    <select
-                      value={themeFilter}
-                      onChange={(event) => setThemeFilter(event.target.value as "all" | FlashTheme)}
-                      className="h-12 w-full appearance-none rounded-2xl border border-black/[0.08] bg-white px-4 pr-9 font-mono text-[11px] font-medium uppercase tracking-[0.08em] text-black outline-none transition focus:border-black/30"
-                    >
-                      <option value="all">{t("flashbook.allThemes")}</option>
-                      <option value="realism">{t("flashbook.themeRealism")}</option>
-                      <option value="blackwork">{t("flashbook.themeBlackwork")}</option>
-                      <option value="ornamental">{t("flashbook.themeOrnamental")}</option>
-                      <option value="erotic">{t("flashbook.themeErotic")}</option>
-                    </select>
-                    <span aria-hidden="true" className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-[10px] text-black/45">⌄</span>
-                  </label>
-
-                </div>
-
-                {hasActiveFilters && (
-                  <button
-                    type="button"
-                    onClick={() => setThemeFilter("all")}
-                    className="mt-3 px-2 font-mono text-[9px] uppercase tracking-[0.12em] text-black/45 underline decoration-black/20 underline-offset-4 transition hover:text-black"
-                  >
-                    {t("flashbook.resetFilters")}
-                  </button>
-                )}
-              </div>
-
+              {onSelectMini && <p className="mb-4 text-xs text-black/50">{filterCopy.note}</p>}
               <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-4">
-                {filteredTests.map((testNumber) => (
-                  <button
-                    key={testNumber}
-                    type="button"
-                    onClick={() => {
-                      setSelectedTest(testNumber);
-                      setIsInfoPanelOpen(false);
-                      openFromFullscreenIcon(testNumber);
-                    }}
-                    aria-label={`${t("flashbook.tryFlash")} ${String(testNumber).padStart(2, "0")}`}
-                    className="group text-left"
-                  >
-                    <span className="relative block aspect-[0.76] overflow-hidden rounded-[24px] border border-black/[0.07] bg-white shadow-[0_10px_30px_rgba(0,0,0,0.06)] transition duration-500 group-hover:-translate-y-1 group-hover:shadow-[0_18px_38px_rgba(0,0,0,0.11)] group-active:scale-[0.985]">
-                      <Image
-                        src={flashImages[testNumber]}
-                        alt={`${t("flashbook.flashAlt")} ${testNumber}`}
-                        fill
-                        sizes="(max-width: 640px) 46vw, (max-width: 1024px) 25vw, 240px"
-                        className={`${testNumber === 1 ? "scale-[1.1] group-hover:scale-[1.14]" : "scale-[0.9] group-hover:scale-[0.94]"} object-contain object-center mix-blend-multiply transition-transform duration-700`}
-                      />
-                      <span className="absolute bottom-3 right-3 rounded-full bg-black px-3 py-1.5 font-mono text-[9px] uppercase tracking-[0.12em] text-white sm:bottom-4 sm:right-4">
-                        {t("flashbook.tryOn")}
-                      </span>
+                {showMiniFlashes && filteredMiniFlashes.map(({ design, index }) => (
+                  <button key={`mini-${index}`} type="button" onClick={() => onSelectMini?.(index)} aria-label={`${miniCopy.view} · ${miniFlashName(index)}`} className="group min-w-0 text-left">
+                    <span className="relative block aspect-[0.76] overflow-hidden rounded-[24px] border border-black/[0.07] bg-white shadow-[0_10px_30px_rgba(0,0,0,0.06)]">
+                      <span className="absolute inset-0 bg-no-repeat" style={miniFlashStyle(index)} />
+                      <span className="absolute bottom-3 right-3 rounded-full bg-[#e70101] px-3 py-1.5 font-mono text-[9px] uppercase tracking-[0.12em] text-white">{miniCopy.view}</span>
                     </span>
-                    <span className="mt-3 flex items-center justify-between px-1 font-mono">
-                      <span className="text-[12px] font-semibold tracking-[0.08em]">TEST {String(testNumber).padStart(2, "0")}</span>
-                      <span className="text-[10px] font-semibold">{t("flashbook.from")} €{flashCatalog[testNumber].price}</span>
-                    </span>
-                    <span className="mt-1.5 flex items-center justify-between px-1 font-mono text-[9px] uppercase tracking-[0.08em] text-black/40">
-                      <span>{t(themeLabelKeys[flashCatalog[testNumber].theme])}</span>
-                      <span className="flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-[#1e6a4a]" /> {t("flashbook.available")}</span>
-                    </span>
+                    <span className="mt-3 block px-1 font-mono text-[12px] font-semibold tracking-[0.08em]">{miniFlashName(index)}</span>
+                    <span className="mt-1.5 block px-1 font-mono text-[9px] uppercase tracking-[0.08em] text-black/40">{miniCopy.filter}{design.maximumCm ? ` · ${design.maximumCm} cm max` : ""}{design.minimumPrice ? ` · ${miniFlashPrice(index, locale)}` : ""}{miniFlashDesigns[index].minimumCm ? ` · ${{ fr: "Dès", en: "From", de: "Ab", es: "Desde" }[locale]} ${miniFlashDesigns[index].minimumCm} cm` : ""}</span>
                   </button>
                 ))}
               </div>
-              {filteredTests.length === 0 && (
+              {!showMiniFlashes && (
                 <div className="rounded-[24px] border border-dashed border-black/15 px-6 py-14 text-center font-mono text-[11px] uppercase tracking-[0.1em] text-black/45">
                   {t("flashbook.noResults")}
                 </div>
@@ -804,10 +807,18 @@ export default function FlashbookBook({
         </motion.div>
         </div>
       </section>
+      <dialog ref={skullDialog} onCancel={() => setSkullOpen(false)} onClick={(event) => { if (event.target === event.currentTarget) setSkullOpen(false); }} aria-labelledby="skull-title" className="fixed inset-0 m-auto w-[min(380px,calc(100vw-32px))] rounded-3xl border-0 bg-[#fffaf1] p-5 text-[#171717] backdrop:bg-black/55">
+        <div className="flex items-center justify-between"><h2 id="skull-title" className="font-mono text-sm uppercase text-[#e70101]">{featuredName}</h2><button type="button" aria-label={{ fr: "Fermer", en: "Close", de: "Schließen", es: "Cerrar" }[locale]} onClick={() => setSkullOpen(false)} className="grid size-11 place-items-center text-xl text-black/40">×</button></div>
+        <div role="img" aria-label={featuredName} style={{ backgroundImage: `url('${featuredImage}')` }} className="h-[min(48dvh,420px)] bg-contain bg-center bg-no-repeat" />
+        <p className="my-3 text-xs text-black/60">{featuredDesign === 9 ? justPrayDetails : featuredDesign === 7 || featuredDesign === 8 ? medusaDetails : featuredDesign === 6 ? arkansasDetails : featuredDesign === 1 ? `${skullCopy.minimum} · ${t("flashbook.from")} 300 €` : skullCopy.pending}</p>
+        <Link href={`/studio?design=${featuredDesign}`} onClick={() => { sessionStorage.setItem("flashbook-gallery-return", JSON.stringify({ scroll: window.scrollY, theme: themeFilter, price: priceFilter, size: sizeFilter })); }} className="mb-2 flex h-11 items-center justify-center rounded-full border border-[#e70101]/25 text-sm text-[#e70101]">{t("flashbook.tryOn")}</Link>
+        <button type="button" onClick={() => { setSkullOpen(false); setSkullBookingOpen(true); }} className="h-12 w-full rounded-full bg-[#e70101] text-sm text-white">{skullCopy.book}</button>
+      </dialog>
+      <BookingSheet open={skullBookingOpen} onClose={() => setSkullBookingOpen(false)} flashTitle={featuredName} />
       <BookingSheet
         open={isFlashBookingOpen}
         onClose={() => setIsFlashBookingOpen(false)}
-        flashTitle={`TEST ${selectedTestName} · ${t(selectedBodyArea === "torso"
+        flashTitle={`${selectedTest === 1 ? "Mary Bird" : `TEST ${selectedTestName}`} · ${t(selectedBodyArea === "torso"
           ? "flashbook.areaTorso"
           : selectedBodyArea === "arm"
             ? "flashbook.areaArm"
@@ -1122,7 +1133,7 @@ export default function FlashbookBook({
                 <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-[1] bg-gradient-to-b from-white/18 via-white/[0.04] to-white/22" />
                 <div className="relative z-10 flex h-full flex-col overflow-hidden px-3 pb-3 pt-4 [overflow-wrap:anywhere]">
                   <p className="text-[8px] uppercase tracking-[0.24em] text-black/45">Flash {String(selectedTest).padStart(3, "0")}</p>
-                  <p className="mt-1 text-[22px] font-medium uppercase leading-none">TEST {selectedTestName}</p>
+                  <p className="mt-1 text-[22px] font-medium uppercase leading-none">{selectedTest === 1 ? "Mary Bird" : `TEST ${selectedTestName}`}</p>
 
                   <div className="mt-3 border-t border-black/10 pt-2">
                     <p className="text-[8px] uppercase tracking-[0.18em] text-black/45">{t("flashbook.placement")}</p>
@@ -1220,6 +1231,12 @@ export default function FlashbookBook({
               href={`/studio?design=${selectedTest}`}
               onClick={(event) => {
                 event.stopPropagation();
+                try {
+                  sessionStorage.setItem("flashbook-gallery-return", JSON.stringify({
+                    scroll: galleryScroll.current ?? window.scrollY,
+                    theme: themeFilter, price: priceFilter, size: sizeFilter,
+                  }));
+                } catch { /* Returning to the gallery still works without storage. */ }
               }}
               className="group absolute bottom-[calc(67px+env(safe-area-inset-bottom))] left-1/2 z-[60] flex h-[68px] w-[calc(100%-40px)] max-w-[380px] -translate-x-1/2 items-center justify-between rounded-[20px] border border-black/[0.08] bg-white/80 py-2 pl-5 pr-2.5 text-black shadow-[0_14px_38px_rgba(0,0,0,0.14)] backdrop-blur-xl transition duration-300 hover:-translate-y-0.5 hover:bg-white/95 hover:shadow-[0_18px_44px_rgba(0,0,0,0.18)] active:translate-y-0 active:scale-[0.985]"
             >
@@ -1262,7 +1279,7 @@ export default function FlashbookBook({
               </span>
               <span className="ml-3 flex min-w-0 flex-1 flex-col">
                 <span className="font-mono text-[8px] uppercase tracking-[0.18em] text-black/35">
-                  TEST {selectedTestName}
+                  {selectedTest === 1 ? "Mary Bird" : `TEST ${selectedTestName}`}
                 </span>
                 <span className="mt-0.5 text-[11px] font-semibold text-black/75">
                   {t("flashbook.viewDesign")}

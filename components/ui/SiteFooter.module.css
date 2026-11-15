@@ -1,0 +1,4 @@
+.footer { border-top: 1px solid #2020201a; color: #686b70; text-align: center; }
+.footer small { font-size: 11px; }
+.compact { padding-top: 14px; padding-bottom: 2px; }
+.full { padding: 28px 24px max(24px, env(safe-area-inset-bottom)); background: #fffaf1; }
