@@ -39,6 +39,11 @@ yarn-error.log*
 # Netlify local state
 .netlify/
 
+# Cloudflare build output, local state, and secrets
+.open-next/
+.wrangler/
+.dev.vars*
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

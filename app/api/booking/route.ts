@@ -1,8 +1,6 @@
 import { isParisBookingDate } from "@/components/booking/availability";
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY!);
-
 const emailCopy = {
   fr: {
     subject: "Nouvelle demande",
@@ -108,6 +106,7 @@ export async function POST(req: Request) {
           .join("")
       : `<p>${copy.noReferences}</p>`;
 
+    const resend = new Resend(process.env.RESEND_API_KEY);
     const { error } = await resend.emails.send({
       from: "Booking <booking@clempope.com>",
       to: "clempopetattoo@gmail.com",

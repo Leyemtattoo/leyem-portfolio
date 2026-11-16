@@ -1,6 +1,14 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  images: {
+    unoptimized: process.env.CLOUDFLARE_BUILD === "1",
+  },
+  ...(process.env.CLOUDFLARE_BUILD === "1" ? {
+    turbopack: {
+      resolveAlias: { undici: "./scripts/cloudflare-fetch.mjs" },
+    },
+  } : {}),
   devIndicators: false,
   allowedDevOrigins: [
     "192.168.178.95",

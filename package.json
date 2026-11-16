@@ -6,14 +6,18 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "cf:build": "node scripts/build-cloudflare.mjs",
+    "cf:preview": "npm run cf:build && opennextjs-cloudflare preview",
+    "cf:deploy": "npm run cf:build && opennextjs-cloudflare deploy"
   },
   "dependencies": {
+    "@opennextjs/cloudflare": "^1.20.17",
     "@vercel/blob": "^2.6.1",
     "cloudinary": "^2.10.0",
     "framer-motion": "^12.42.2",
     "html-to-image": "^1.11.13",
-    "next": "16.2.10",
+    "next": "16.4.6",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-dropzone": "^19.1.1",
@@ -25,8 +29,9 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.2.10",
+    "eslint-config-next": "16.4.6",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "wrangler": "^4.163.0"
   }
 }
