@@ -465,9 +465,10 @@ export default function PlacementStudio({ designNumber = 1, miniIndex, allowUplo
         onPointerUp={endGesture}
         onPointerCancel={endGesture}
         className="absolute inset-0 touch-none select-none overflow-hidden bg-white">
-        <div className="pointer-events-none absolute inset-0 will-change-transform" style={{ transform: `translate3d(${mannequinX}px, calc(${mannequinY}px + ${mannequinHeadFramingPx}px), 0) scale(${mannequinScale})`, transformOrigin: "center center" }}>
+        {/* Let the browser rerasterize the original photo at each zoom level. */}
+        <div className="pointer-events-none absolute inset-0" style={{ transform: `translate(${mannequinX}px, ${mannequinY + mannequinHeadFramingPx}px) scale(${mannequinScale})`, transformOrigin: "center center" }}>
           <Image
-          key={`${gender}-${view}-${anatomicalZone}`}
+          key={`${gender}-${view}`}
           src={mannequinSrc}
           alt={`Mannequin ${genderLabel.toLowerCase()}, ${viewLabel.toLowerCase()}, ${areaLabel.toLowerCase()}`}
           fill
@@ -583,7 +584,7 @@ export default function PlacementStudio({ designNumber = 1, miniIndex, allowUplo
 
         <div data-no-camera aria-hidden className={`pointer-events-none absolute inset-0 z-[80] bg-white transition-opacity duration-300 ${captureFlash ? "opacity-95 duration-75" : "opacity-0"}`} />
 
-        <div className="pointer-events-none absolute inset-0 will-change-transform" style={{ transform: `translate3d(${mannequinX}px, ${mannequinY + tattooFramingY}px, 0) scale(${mannequinZoom})`, transformOrigin: "center center", mixBlendMode: "multiply", opacity: designNumber === 5 ? 0.88 : 1 }}>
+        <div className="pointer-events-none absolute inset-0" style={{ transform: `translate(${mannequinX}px, ${mannequinY + tattooFramingY}px) scale(${mannequinZoom})`, transformOrigin: "center center", mixBlendMode: "multiply", opacity: designNumber === 5 ? 0.88 : 1 }}>
           <div className="absolute left-0 top-0 h-full w-full" style={{ transform: `translate(${placement.x}%, ${placement.y}%) rotate(${placement.rotation}deg) scale(${placement.scale}) scaleX(${placement.mirrored ? -1 : 1})`, transformOrigin: "0 0" }}>
             <div className="pointer-events-auto relative h-[30%] w-[72%] -translate-x-1/2 -translate-y-1/2 touch-none cursor-grab active:cursor-grabbing" style={miniDesign ? {
               height: imageHeight * mannequinBaseScale * (minimumHeightCm / REFERENCE_BODY_HEIGHT_CM) / defaultFlashScale,
