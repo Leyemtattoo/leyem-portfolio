@@ -1,4 +1,3 @@
-import { isParisBookingDate } from "@/components/booking/availability";
 import { Resend } from "resend";
 
 const emailCopy = {
@@ -68,7 +67,6 @@ export async function POST(req: Request) {
       email,
       locale = "fr",
       location,
-      date,
       placement,
       size,
       budget,
@@ -77,8 +75,8 @@ export async function POST(req: Request) {
       flashTitle,
     } = await req.json();
 
-    if (location === "Paris" && (typeof date !== "string" || !isParisBookingDate(date))) {
-      return Response.json({ error: "Paris : choisis le 18 ou le 19 novembre 2026." }, { status: 400 });
+    if (location !== "Berlin") {
+      return Response.json({ error: "Les réservations sont ouvertes à Berlin uniquement." }, { status: 400 });
     }
 
     const emailLocale = locale === "en" ? "en" : locale === "de" ? "de" : locale === "es" ? "es" : "fr";
@@ -131,7 +129,6 @@ export async function POST(req: Request) {
 
       <p><strong>${copy.location}</strong><br>${location}</p>
 
-      ${location === "Paris" ? `<p><strong>Date</strong><br>${new Intl.DateTimeFormat(emailLocale, { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${date}T12:00:00Z`))}</p>` : ""}
 
       <p><strong>${copy.placement}</strong><br>${placement}</p>
 

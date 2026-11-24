@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { isParisBookingDate } from "./availability";
 import SheetHeader from "./SheetHeader";
 import StepName from "./steps/NameStep";
 import StepInstagram from "./steps/InstagramStep";
@@ -30,7 +29,6 @@ type BookingForm = {
   instagram: string;
   email: string;
   location: string;
-  date: string;
   placement: string;
   size: string;
   budget: string;
@@ -121,7 +119,6 @@ const [formData, setFormData] = useState<BookingForm>({
   instagram: "",
   email: "",
   location: "",
-  date: "",
   placement: "",
   size: "",
   budget: "",
@@ -147,7 +144,6 @@ useEffect(() => {
     instagram: "",
     email: "",
     location: "",
-    date: "",
     placement: "",
     size: "",
     budget: "",
@@ -233,7 +229,7 @@ useEffect(() => {
 const isCurrentStepFilled =
   currentStep >= activeSteps.length ||
   (activeSteps[currentStep].field === "location"
-    ? ["Paris", "Berlin"].includes(formData.location) && (formData.location !== "Paris" || isParisBookingDate(formData.date))
+    ? formData.location === "Berlin"
     : activeSteps[currentStep].field === "email"
     ? /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())
     : formData[activeSteps[currentStep].field].trim().length > 0);
@@ -433,13 +429,10 @@ return (
   ) : activeSteps[currentStep].field === "location" ? (
   <LocationStep
     value={formData.location}
-    date={formData.date}
-    onDateChange={(date) => setFormData((current) => ({ ...current, date }))}
     onChange={(value) =>
       setFormData({
         ...formData,
         location: value,
-        date: value === formData.location ? formData.date : "",
       })
     }
   />
