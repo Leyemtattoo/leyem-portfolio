@@ -14,7 +14,7 @@ type View = "face" | "side" | "back";
 type Area = "torso" | "arm" | "leg";
 type AnatomicalZone = "shoulders" | "chest" | "abdomen" | "waistband" | "upperArm" | "forearm" | "thigh" | "calf" | "back";
 type Placement = { x: number; y: number; scale: number; rotation: number; mirrored: boolean };
-type ViewTransition = { src: string; target: View; frozenFrame?: string };
+type ViewTransition = { src: string; target: View };
 
 const gestureHelp: Record<Locale, { title: string; steps: string[] }> = {
   fr: { title: "Ajuste ton flash", steps: ["Glisse pour le placer.", "Pince à deux doigts pour changer sa taille.", "Tourne à deux doigts pour l’orienter."] },
@@ -147,13 +147,14 @@ export default function PlacementStudio({ designNumber = 1, miniIndex, allowUplo
     side: "/images/studio/female-side-full.jpg",
     back: "/images/studio/female-back-full.jpg",
   };
-  const mannequinSrc = gender === "female" ? femaleMannequins[view] : fullMannequins[view];
+  const mannequinImages = gender === "female" ? femaleMannequins : fullMannequins;
+  const mannequinSrc = mannequinImages[view];
   const framedView = viewTransition?.target ?? view;
   const mannequinBaseScale = gender === "male"
     ? (framedView === "side" ? 1.5 : framedView === "back" ? 1.3 : 1.25)
     : (framedView === "side" ? 1.42 : 1.22);
   const mannequinScale = mannequinBaseScale * mannequinZoom;
-  const transitionPlaying = Boolean(viewTransition && !viewTransition.frozenFrame);
+  const transitionPlaying = viewTransition !== null;
   const imagePadding = stageSize.width >= 640 ? 196 : 176;
   const imageWidth = stageSize.width - (stageSize.width >= 640 ? 40 : 24);
   const imageHeight = Math.min(stageSize.height - imagePadding, imageWidth * 2400 / 1696);
@@ -245,13 +246,21 @@ export default function PlacementStudio({ designNumber = 1, miniIndex, allowUplo
     if (nextView === view) return;
     const transitions = gender === "female" ? femaleViewTransitions : maleViewTransitions;
     const transition = transitions[`${view}-${nextView}`];
-    if (transition) setViewTransition({ src: transition, target: nextView });
-    else {
+    if (transition) {
+      const targetImage = new window.Image();
+      targetImage.src = mannequinImages[nextView];
+      setViewTransition({ src: transition, target: nextView });
+    } else {
       setView(nextView);
       setViewTransition(null);
     }
     resetPlacement();
     resetMannequin();
+  };
+  const finishViewTransition = () => {
+    if (!viewTransition) return;
+    setView(viewTransition.target);
+    setViewTransition(null);
   };
   const uploadDesign = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -477,13 +486,7 @@ export default function PlacementStudio({ designNumber = 1, miniIndex, allowUplo
           sizes="100vw"
           className="pointer-events-none object-contain px-3 pb-[176px] sm:px-5 sm:pb-[196px]"
           />
-          {viewTransition?.frozenFrame ? (
-            <img
-              src={viewTransition.frozenFrame}
-              alt=""
-              className="absolute inset-0 h-full w-full object-contain px-3 pb-[176px] sm:px-5 sm:pb-[196px]"
-            />
-          ) : viewTransition ? (
+          {viewTransition ? (
             <video
               key={viewTransition.src}
               src={viewTransition.src}
@@ -491,23 +494,8 @@ export default function PlacementStudio({ designNumber = 1, miniIndex, allowUplo
               muted
               playsInline
               preload="auto"
-              onEnded={(event) => {
-                const video = event.currentTarget;
-                const canvas = document.createElement("canvas");
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
-                const context = canvas.getContext("2d");
-                if (context && canvas.width && canvas.height) {
-                  context.drawImage(video, 0, 0, canvas.width, canvas.height);
-                  const frozenFrame = canvas.toDataURL("image/jpeg", 0.9);
-                  setView(viewTransition.target);
-                  setViewTransition((current) => current?.src === viewTransition.src ? { ...current, frozenFrame } : current);
-                } else {
-                  setView(viewTransition.target);
-                  setViewTransition(null);
-                }
-              }}
-              onError={() => setViewTransition(null)}
+              onEnded={finishViewTransition}
+              onError={finishViewTransition}
               className="absolute inset-0 h-full w-full object-contain px-3 pb-[176px] sm:px-5 sm:pb-[196px]"
               aria-label="Transition du mannequin"
             />
