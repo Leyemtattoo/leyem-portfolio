@@ -1,15 +1,16 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { framaBlack, neueMontrealRegular } from "@/app/fonts";
 import { useTranslation } from "@/components/i18n/LanguageProvider";
 import SiteFooter from "@/components/ui/SiteFooter";
 
 const copy = {
-  fr: { empty: "Aucun flash disponible pour le moment.", home: "Retour à l’accueil" },
-  en: { empty: "No flashes available right now.", home: "Back home" },
-  de: { empty: "Derzeit sind keine Flashs verfügbar.", home: "Zurück zur Startseite" },
-  es: { empty: "No hay flashes disponibles por el momento.", home: "Volver al inicio" },
+  fr: { placement: "Essayer le placement", home: "Retour à l’accueil" },
+  en: { placement: "Try the placement", home: "Back home" },
+  de: { placement: "Platzierung ausprobieren", home: "Zurück zur Startseite" },
+  es: { placement: "Probar la colocación", home: "Volver al inicio" },
 };
 
 export default function UnifiedFlashbook() {
@@ -22,7 +23,22 @@ export default function UnifiedFlashbook() {
         <h1 className={`${framaBlack.className} text-[clamp(2.65rem,10vw,6.8rem)] uppercase leading-none tracking-tight text-[#e70101]`}>
           Flashbook
         </h1>
-        <p className="mt-4">{text.empty}</p>
+        <article id="designs" className="mt-8 w-full max-w-xs overflow-hidden rounded-2xl bg-white">
+          <Image
+            src="/images/flashbook/TEST-01.webp"
+            alt="Mary Bird"
+            width={2480}
+            height={3508}
+            sizes="(max-width: 368px) calc(100vw - 48px), 320px"
+            className="h-auto w-full"
+          />
+          <div className="p-5 pt-0">
+            <h2 className="text-xl font-bold">Mary Bird</h2>
+            <Link href="/studio?design=1" className="mt-2 inline-block underline underline-offset-4">
+              {text.placement}
+            </Link>
+          </div>
+        </article>
         <Link href="/" className="mt-8 underline underline-offset-4">
           {text.home}
         </Link>
